@@ -40,8 +40,7 @@
             </div>
             <div style="margin-top: 15px; display: flex; gap: 10px;">
                 <button onclick="startWebRTCCall()">1. Initialize WebRTC Call</button>
-                <button onclick="publishMode('AUTO')" class="danger">Lock Motors (AUTO)</button>
-                <button onclick="publishMode('MANUEL')">Unlock Motors (MANUAL)</button>
+                <!-- Les boutons Lock et Unlock ont été retirés -->
             </div>
         </div>
 
@@ -59,6 +58,7 @@
                 <h3>🕹️ Manual Teleoperation</h3>
                 <p style="font-size: 11px; color: #aaa;">Use your keyboard arrows or the buttons below.</p>
                 <div class="d-pad">
+                    <!-- Les valeurs de rotation sont adoucies à 0.5 -->
                     <button class="up" onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()">▲</button>
                     <button class="left" onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()">◀</button>
                     <button class="right" onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()">▶</button>
@@ -78,10 +78,6 @@
     </div>
 
     <script>
-        /*const BROKER = "192.168.0.135"; // IMPORTANT: Update this IP if your PC's IP changes
-        const PORT = 9001; 
-        const CLIENT_ID = "DashboardWebRTC_" + Math.random().toString(16).substr(2, 8);*/
-
         const BROKER = "0cb6b7de17494a0b8d1fbb40718195cd.s1.eu.hivemq.cloud"; 
         const PORT = 8884; 
         const CLIENT_ID = "DashboardWebRTC_" + Math.random().toString(16).substr(2, 8);
@@ -114,21 +110,15 @@
                 if (payload.type === "order_validation") {
                     console.log("New order received:", payload);
                     
-                    // We add the BOM (Byte Order Mark) to force Excel to read UTF-8 properly
                     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-                    
-                    // MODIFICATION: Using Semicolons (;) instead of Commas (,)
                     csvContent += "Date_Time;Item;Price_Euro\n"; 
 
-                    // Add rows for each item ordered
                     payload.items.forEach(function(item) {
                         csvContent += `${payload.timestamp};${item.name};${item.price.toFixed(2)}\n`;
                     });
                     
-                    // Add Total line at the bottom
                     csvContent += `;;TOTAL : ${payload.total.toFixed(2)}\n`;
 
-                    // Trigger automatic download on the PC
                     let encodedUri = encodeURI(csvContent);
                     let link = document.createElement("a");
                     link.setAttribute("href", encodedUri);
@@ -138,10 +128,8 @@
                     link.click();
                     document.body.removeChild(link);
 
-                    // Audio alert on the PC to notify the staff (Kitchen Bell)
                     new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(e => {});
                     
-                    // Add a visual confirmation in the Notification box
                     const list = document.getElementById("menu-notifications");
                     if(list && list.innerHTML.includes("No active requests")) list.innerHTML = "";
                     let li = document.createElement("li");
@@ -149,7 +137,7 @@
                     li.style.color = "#2ecc71";
                     li.style.fontWeight = "bold";
                     if(list) list.prepend(li);
-                }
+                } 
                 
                 // 2. IF IT IS A SIMPLE CLICK ON A DISH (For live notification tracking)
                 else if (payload.request) {
@@ -178,6 +166,9 @@
                 mqtt.subscribe("temi/webrtc/candidate/robot");
                 mqtt.subscribe("temi/status");
                 mqtt.subscribe("temi/menu");
+                
+                // Déverrouille les moteurs automatiquement à la connexion
+                publishMode('MANUEL');
             },
             onFailure: function (message) {
                 document.getElementById("status-bar").style.background = "#c0392b";
@@ -208,7 +199,6 @@
             };
 
             try {
-                // Audio and Video enabled for Two-Way communication
                 const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             } catch (e) {
@@ -235,37 +225,63 @@
             }
         }
 
+        // NOUVELLE GESTION DU JOYSTICK ET CLAVIER
         let movementLoop = null;
+        let currentSpeed = 0.0;
+        let currentRotation = 0.0;
+
         function startJoy(speed, rotation) {
-            publishData("temi/joystick", { speed: speed, rotation: rotation });
+            currentSpeed = speed;
+            currentRotation = rotation;
+            publishData("temi/joystick", { speed: currentSpeed, rotation: currentRotation });
+            
             if (movementLoop) clearInterval(movementLoop);
-            movementLoop = setInterval(() => { publishData("temi/joystick", { speed: speed, rotation: rotation }); }, 100);
+            movementLoop = setInterval(() => { 
+                publishData("temi/joystick", { speed: currentSpeed, rotation: currentRotation }); 
+            }, 100);
         }
 
         function stopJoy() {
             if (movementLoop) { clearInterval(movementLoop); movementLoop = null; }
+            currentSpeed = 0.0;
+            currentRotation = 0.0;
             publishData("temi/joystick", { speed: 0.0, rotation: 0.0 });
         }
 
-        // Keyboard Arrows Teleoperation
-        const activeKeys = {};
+        // Suivi multi-touches
+        const activeKeys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+
+        function updateJoystickFromKeys() {
+            let s = 0.0;
+            let r = 0.0;
+
+            if (activeKeys["ArrowUp"]) s = 1.0;
+            if (activeKeys["ArrowDown"]) s = -1.0;
+            if (activeKeys["ArrowLeft"]) r = 0.8; 
+            if (activeKeys["ArrowRight"]) r = -0.8; 
+
+            if (s === 0.0 && r === 0.0) {
+                stopJoy();
+            } else {
+                startJoy(s, r);
+            }
+        }
+
         document.addEventListener("keydown", (event) => {
-            const key = event.key;
-            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
+            if (activeKeys.hasOwnProperty(event.key)) {
                 event.preventDefault(); 
-                if (activeKeys[key]) return; 
-                activeKeys[key] = true;
-                if (key === "ArrowUp") startJoy(1.0, 0.0);
-                else if (key === "ArrowDown") startJoy(-1.0, 0.0);
-                else if (key === "ArrowLeft") startJoy(0.0, 0.5);
-                else if (key === "ArrowRight") startJoy(0.0, -0.5);
+                if (!activeKeys[event.key]) {
+                    activeKeys[event.key] = true;
+                    updateJoystickFromKeys();
+                }
             }
         });
 
         document.addEventListener("keyup", (event) => {
-            const key = event.key;
-            if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(key)) {
-                activeKeys[key] = false; stopJoy();
+            if (activeKeys.hasOwnProperty(event.key)) {
+                event.preventDefault();
+                activeKeys[event.key] = false;
+                updateJoystickFromKeys();
             }
         });
     </script>
