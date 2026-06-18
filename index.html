@@ -85,7 +85,16 @@
         const mqtt = new Paho.MQTT.Client(BROKER, PORT, CLIENT_ID);
         
         let peerConnection = null;
-        const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+               const rtcConfig = { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' }, // STUN
+                { 
+                    urls: 'turn:Temix.metered.live:80', 
+                    username: '3aed535ef4abcfe26c68e954', 
+                    credential: 'wjtztZMLI2zABv31' 
+                }
+            ] 
+        };
 
         mqtt.onConnectionLost = function (responseObj) {
             document.getElementById("status-bar").style.background = "#c0392b";
