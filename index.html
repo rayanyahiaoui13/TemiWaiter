@@ -8,57 +8,199 @@
     
     <title>Temi Dashboard - Supervisor Mode</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #1e1e1e; color: white; margin: 0; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #f4f5f7; /* Gris très clair, fond type Temi App */
+            color: #333333; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+        }
         .layout { display: flex; gap: 20px; width: 100%; }
-        .panel { background: #2d2d2d; padding: 20px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        #status-bar { width: 100%; padding: 10px; border-radius: 5px; font-weight: bold; text-align: center; background: #c0392b; box-sizing: border-box;}
+        .panel { 
+            background: #ffffff; /* Panneaux blancs purs */
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+            border: 1px solid #e0e0e0;
+        }
+        
+        h2, h3, h4 { color: #222222; margin-top: 0; }
+        hr { border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0; }
+        
+        #status-bar { 
+            width: 100%; 
+            padding: 12px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            text-align: center; 
+            background: #e74c3c; 
+            color: white;
+            box-sizing: border-box;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        
         #video-panel { flex: 2; display: flex; flex-direction: column; }
-        #video-container { width: 100%; height: 500px; background: black; border-radius: 8px; overflow: hidden; position: relative; }
-        video { width: 100%; height: 100%; object-fit: cover; }
+        #video-container { 
+            width: 100%; 
+            height: 500px; 
+            background: #111111; /* Gardé sombre pour le contraste vidéo */
+            border-radius: 10px; 
+            overflow: hidden; 
+            position: relative; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        
+        #remote-video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            position: absolute;
+            top: 0; left: 0;
+        }
+
+        #local-video {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 160px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 2px solid #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: scaleX(-1);
+            background: #222;
+            z-index: 10;
+        }
+
+        .under-video-controls { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .action-bar { display: flex; gap: 10px; width: 100%; }
+        .action-bar button { margin-bottom: 0; flex: 1; }
+        
+        .system-stats { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            background: #f9f9f9; 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            font-weight: bold; 
+            border: 1px solid #e0e0e0; 
+        }
+        .stat-box { display: flex; align-items: center; justify-content: space-between; color: #555; }
+        .stat-value { color: #f39c12; } /* Orange Temi par défaut pour les valeurs */
+
         #controls-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; }
-        button { background: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; user-select: none; margin-bottom: 5px; }
-        button:hover { background: #45a049; }
+        
+        button { 
+            background: #f39c12; /* Orange Temi */
+            color: white; 
+            border: none; 
+            padding: 12px 15px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            user-select: none; 
+            margin-bottom: 5px; 
+            transition: background 0.2s;
+            text-transform: uppercase;
+            font-size: 13px;
+        }
+        button:hover { background: #e67e22; }
+        
+        button.secondary { background: #34495e; color: white; }
+        button.secondary:hover { background: #2c3e50; }
         button.danger { background: #e74c3c; }
+        
         .d-pad { display: grid; grid-template-columns: repeat(3, 60px); gap: 5px; justify-content: center; margin-top: 10px;}
-        .d-pad button { padding: 15px 0; font-size: 18px; touch-action: none; }
+        .d-pad button { padding: 15px 0; font-size: 18px; touch-action: none; background: #bdc3c7; color: #333;}
+        .d-pad button:hover { background: #a2abaf; }
         .up { grid-column: 2; }
         .left { grid-column: 1; }
         .right { grid-column: 3; }
         .down { grid-column: 2; }
+
+        .cart-log-container { display: flex; gap: 10px; }
+        .list-box { 
+            flex: 1; 
+            background: #f9f9f9; 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid #e0e0e0; 
+        }
+        .list-box h4 { margin-top: 0; color: #333; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #f39c12; padding-bottom: 5px; display: inline-block; }
+        
+        #live-cart-list, #menu-notifications { 
+            list-style-type: none; 
+            padding: 0; 
+            margin: 0; 
+            font-size: 13px; 
+            overflow-y: auto; 
+            color: #555;
+        }
+        #live-cart-list { min-height: 60px; max-height: 100px; }
+        #menu-notifications { max-height: 120px; }
+        
+        .empty-text { color: #aaa; font-style: italic; }
+        #live-cart-total { color: #e67e22; font-size: 15px; display: block; margin-top: 8px; }
+        
+        .btn-clear { background: #bdc3c7; color: #333; font-size: 11px; padding: 6px; margin-top: 10px; width: 100%; }
+        .btn-clear:hover { background: #95a5a6; }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 </head>
 <body>
 
-    <div id="status-bar">🔴 CONFIGURING MQTT NETWORK...</div>
+    <div id="status-bar">CONFIGURING MQTT NETWORK...</div>
 
     <div class="layout">
         <div id="video-panel" class="panel">
-            <h2>📷 Direct P2P Video Stream</h2>
+            <h2>Control Center</h2>
             <div id="video-container">
                 <video id="remote-video" autoplay playsinline></video>
+                <video id="local-video" autoplay playsinline muted></video>
             </div>
-            <div style="margin-top: 15px; display: flex; gap: 10px;">
-                <button onclick="startWebRTCCall()">1. Initialize WebRTC Call</button>
-                <!-- Les boutons Lock et Unlock ont été retirés -->
+            
+            <div class="under-video-controls">
+                <div class="action-bar">
+                    <button onclick="startWebRTCCall()" style="background: #34495e;">Initialize WebRTC Call</button>
+                    <button onclick="toggleMute()" class="secondary" id="btn-mute">Mute Mic</button>
+                    <button onclick="toggleVideo()" class="secondary" id="btn-video">Disable Video</button>
+                </div>
+
+                <div class="system-stats">
+                    <div style="color: #333; font-size: 15px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Robot Live Status</div>
+                    <div class="stat-box">
+                        <span>Current Task:</span>
+                        <span id="robot-task" class="stat-value" style="color:#7f8c8d">Idle / Standby</span>
+                    </div>
+                    <div class="stat-box">
+                        <span>Destination:</span>
+                        <span id="robot-dest" class="stat-value">-</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div id="controls-panel" class="panel">
             <div>
-                <h3>🗺️ Autonomous Navigation (POI)</h3>
+                <h3>Autonomous Navigation</h3>
                 <button onclick="sendGoTo('home base')" style="width: 100%;">Go to Home Base</button>
                 <button onclick="sendGoTo('table 1')" style="width: 100%;">Go to Table 1</button>
-                <button onclick="sendGoTo('standby')" style="width: 100%;">Go to Stand by</button>
+                <button onclick="sendGoTo('standby')" style="width: 100%;">Go to Standby</button>
             </div>
 
-            <hr style="border-color: #444;">
+            <hr>
 
             <div>
-                <h3>🕹️ Manual Teleoperation</h3>
-                <p style="font-size: 11px; color: #aaa;">Use your keyboard arrows or the buttons below.</p>
+                <h3>Manual Teleoperation</h3>
+                <p style="font-size: 12px; color: #777; margin-top: 0;">Use keyboard arrows to drive.</p>
                 <div class="d-pad">
-                    <!-- Les valeurs de rotation sont adoucies à 0.5 -->
                     <button class="up" onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()">▲</button>
                     <button class="left" onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()">◀</button>
                     <button class="right" onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()">▶</button>
@@ -66,13 +208,28 @@
                 </div>
             </div>
             
-            <hr style="border-color: #444;">
+            <hr>
             
             <div>
-                <h3>📋 Customer Requests (Live)</h3>
-                <ul id="menu-notifications" style="background: #222; padding: 10px; border-radius: 5px; list-style-type: none; margin-top: 0; font-size: 14px; max-height: 150px; overflow-y: auto;">
-                    <li style="color: #aaa; font-style: italic;">No active requests from the robot screen...</li>
-                </ul>
+                <h3>Live Activity</h3>
+                <div class="cart-log-container">
+                    <div class="list-box">
+                        <h4>Customer Cart</h4>
+                        <ul id="live-cart-list">
+                            <li class="empty-text">Empty cart...</li>
+                        </ul>
+                        <hr style="margin: 8px 0; border-top: 1px dashed #ccc;">
+                        <strong id="live-cart-total">Total: RM0.00</strong>
+                        <button onclick="clearLiveCart()" class="btn-clear">Clear / Resync</button>
+                    </div>
+
+                    <div class="list-box">
+                        <h4>Activity Log</h4>
+                        <ul id="menu-notifications">
+                            <li class="empty-text">Waiting for actions...</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -85,9 +242,47 @@
         const mqtt = new Paho.MQTT.Client(BROKER, PORT, CLIENT_ID);
         
         let peerConnection = null;
-               const rtcConfig = { 
+        let globalLocalStream = null;
+
+        const menuPrices = {
+            "Caesar Salad": 8.50, "Garlic Bread": 5.00,
+            "Temi Burger": 15.00, "Grilled Salmon": 18.00,
+            "Choco Fondant": 6.50, "Cheesecake": 7.00,
+            "Coca-Cola": 3.50, "Water Bottle": 2.00
+        };
+        let liveCart = [];
+
+        function updateLiveCartUI() {
+            const list = document.getElementById("live-cart-list");
+            const totalEl = document.getElementById("live-cart-total");
+            
+            if (liveCart.length === 0) {
+                list.innerHTML = '<li class="empty-text">Empty cart...</li>';
+                totalEl.innerText = "Total: RM0.00";
+                return;
+            }
+
+            list.innerHTML = "";
+            let total = 0;
+            liveCart.forEach(item => {
+                let price = menuPrices[item] || 0;
+                total += price;
+                let li = document.createElement("li");
+                li.innerText = `+ ${item} - RM${price.toFixed(2)}`;
+                li.style.color = "#333";
+                list.appendChild(li);
+            });
+            totalEl.innerText = `Total: RM${total.toFixed(2)}`;
+        }
+
+        function clearLiveCart() {
+            liveCart = [];
+            updateLiveCartUI();
+        }
+
+        const rtcConfig = { 
             iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' }, // STUN
+                { urls: 'stun:stun.l.google.com:19302' },
                 { 
                     urls: 'turn:Temix.metered.live:80', 
                     username: '3aed535ef4abcfe26c68e954', 
@@ -97,13 +292,11 @@
         };
 
         mqtt.onConnectionLost = function (responseObj) {
-            document.getElementById("status-bar").style.background = "#c0392b";
-            document.getElementById("status-bar").innerText = "🔴 MQTT CONNECTION LOST";
+            const bar = document.getElementById("status-bar");
+            bar.style.background = "#e74c3c";
+            bar.innerText = "MQTT CONNECTION LOST";
         };
 
-        // ==========================================
-        // INCOMING MESSAGES HANDLER (CSV GENERATOR)
-        // ==========================================
         mqtt.onMessageArrived = function (message) {
             const payload = JSON.parse(message.payloadString);
             
@@ -112,26 +305,45 @@
             } else if (message.destinationName === "temi/webrtc/candidate/robot") {
                 peerConnection.addIceCandidate(new RTCIceCandidate(payload));
             } else if (message.destinationName === "temi/status") {
-                console.log("Robot Navigation Status: ", payload);
+                
+                if (payload.type === "navigation_status") {
+                    const destEl = document.getElementById("robot-dest");
+                    const taskEl = document.getElementById("robot-task");
+                    
+                    destEl.innerText = payload.location ? payload.location.toUpperCase() : "NONE";
+                    
+                    let statusText = payload.status.toUpperCase();
+                    let statusColor = "#f39c12"; 
+                    
+                    if (payload.status === "start" || payload.status === "going") {
+                        statusText = "MOVING"; statusColor = "#3498db"; 
+                    } else if (payload.status === "complete") {
+                        statusText = "ARRIVED"; statusColor = "#2ecc71"; 
+                    } else if (payload.status === "abort") {
+                        statusText = "ABORTED"; statusColor = "#e74c3c"; 
+                    } else if (payload.status === "calculating") {
+                        statusText = "CALCULATING PATH";
+                    }
+                    
+                    taskEl.innerText = statusText;
+                    taskEl.style.color = statusColor;
+                }
+                
             } else if (message.destinationName === "temi/menu") {
                 
-                // 1. IF IT IS AN ORDER VALIDATION -> Generate CSV on the PC
                 if (payload.type === "order_validation") {
-                    console.log("New order received:", payload);
-                    
                     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-                    csvContent += "Date_Time;Item;Price_Euro\n"; 
+                    csvContent += "Date_Time;Item;Price_RM\n"; 
 
                     payload.items.forEach(function(item) {
                         csvContent += `${payload.timestamp};${item.name};${item.price.toFixed(2)}\n`;
                     });
-                    
                     csvContent += `;;TOTAL : ${payload.total.toFixed(2)}\n`;
 
                     let encodedUri = encodeURI(csvContent);
                     let link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
                     let safeFileName = payload.timestamp.replace(/[: ]/g, "_");
+                    link.setAttribute("href", encodedUri);
                     link.setAttribute("download", `Temi_Order_${safeFileName}.csv`);
                     document.body.appendChild(link); 
                     link.click();
@@ -140,48 +352,48 @@
                     new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(e => {});
                     
                     const list = document.getElementById("menu-notifications");
-                    if(list && list.innerHTML.includes("No active requests")) list.innerHTML = "";
+                    if(list && list.innerHTML.includes("Waiting")) list.innerHTML = "";
                     let li = document.createElement("li");
-                    li.innerText = `✅ ORDER VALIDATED: ${payload.items.length} items (Total: ${payload.total.toFixed(2)}€) - CSV Saved.`;
-                    li.style.color = "#2ecc71";
+                    li.innerText = `[ORDER VALIDATED] ${payload.items.length} items (Total: RM${payload.total.toFixed(2)})`;
+                    li.style.color = "#27ae60";
                     li.style.fontWeight = "bold";
                     if(list) list.prepend(li);
+
+                    clearLiveCart();
                 } 
-                
-                // 2. IF IT IS A SIMPLE CLICK ON A DISH (For live notification tracking)
                 else if (payload.request) {
                     const list = document.getElementById("menu-notifications");
-                    if(list && list.innerHTML.includes("No active requests")) list.innerHTML = "";
+                    if(list && list.innerHTML.includes("Waiting")) list.innerHTML = "";
                     
                     let li = document.createElement("li");
-                    li.innerText = `🔔 Client added to cart: ${payload.request} (${new Date().toLocaleTimeString()})`;
-                    li.style.color = "#f1c40f";
+                    li.innerText = `Added: ${payload.request}`;
+                    li.style.color = "#2980b9";
                     if(list) list.prepend(li);
+
+                    liveCart.push(payload.request);
+                    updateLiveCartUI();
                 }
             }
         };
 
-        // ==========================================
-        // MQTT CONNECTION
-        // ==========================================
         mqtt.connect({
-            userName: "temi_admin",          // <-- Remplace par ton vrai nom d'utilisateur HiveMQ
-            password: "TestTemi1",     // <-- Remplace par ton vrai mot de passe HiveMQ
-            useSSL: true,                    // <-- OBLIGATOIRE pour le cloud !
+            userName: "temi_admin",          
+            password: "TestTemi1",     
+            useSSL: true,                    
             onSuccess: function () { 
-                document.getElementById("status-bar").style.background = "#2ecc71";
-                document.getElementById("status-bar").innerText = "🟢 ONLINE (MQTT CLOUD OK) - Ready for WebRTC";
+                const bar = document.getElementById("status-bar");
+                bar.style.background = "#2ecc71";
+                bar.innerText = "ONLINE (CLOUD) - READY FOR VIDEO";
                 mqtt.subscribe("temi/webrtc/answer");
                 mqtt.subscribe("temi/webrtc/candidate/robot");
                 mqtt.subscribe("temi/status");
                 mqtt.subscribe("temi/menu");
-                
-                // Déverrouille les moteurs automatiquement à la connexion
-                publishMode('MANUEL');
+                publishMode('MANUEL'); 
             },
             onFailure: function (message) {
-                document.getElementById("status-bar").style.background = "#c0392b";
-                document.getElementById("status-bar").innerText = "🔴 CLOUD CONNECTION FAILED : " + message.errorMessage;
+                const bar = document.getElementById("status-bar");
+                bar.style.background = "#e74c3c";
+                bar.innerText = "CLOUD CONNECTION FAILED: " + message.errorMessage;
             }
         });
 
@@ -189,13 +401,11 @@
             if (mqtt.isConnected()) {
                 let message = new Paho.MQTT.Message(JSON.stringify(payloadObj));
                 message.destinationName = topic;
+                message.qos = 0; 
                 mqtt.send(message);
             }
         }
 
-        // ==========================================
-        // WEBRTC CALL INIT
-        // ==========================================
         async function startWebRTCCall() {
             peerConnection = new RTCPeerConnection(rtcConfig);
 
@@ -209,9 +419,12 @@
 
             try {
                 const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                globalLocalStream = localStream;
+                document.getElementById("local-video").srcObject = localStream;
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
             } catch (e) {
-                console.warn("Camera/Mic not accessible on this PC.");
+                console.warn("Camera/Mic not accessible.", e);
+                alert("Please allow camera access.");
             }
 
             const offer = await peerConnection.createOffer();
@@ -219,9 +432,27 @@
             publishData("temi/webrtc/offer", { type: offer.type, sdp: offer.sdp });
         }
 
-        // ==========================================
-        // ROBOT CONTROLS
-        // ==========================================
+        let isMuted = false;
+        let isVideoStopped = false;
+
+        function toggleMute() {
+            if(!globalLocalStream) return;
+            isMuted = !isMuted;
+            globalLocalStream.getAudioTracks()[0].enabled = !isMuted;
+            const btn = document.getElementById('btn-mute');
+            btn.innerText = isMuted ? "Unmute Mic" : "Mute Mic";
+            btn.style.background = isMuted ? "#e74c3c" : "#34495e";
+        }
+
+        function toggleVideo() {
+            if(!globalLocalStream) return;
+            isVideoStopped = !isVideoStopped;
+            globalLocalStream.getVideoTracks()[0].enabled = !isVideoStopped;
+            const btn = document.getElementById('btn-video');
+            btn.innerText = isVideoStopped ? "Enable Video" : "Disable Video";
+            btn.style.background = isVideoStopped ? "#e74c3c" : "#34495e";
+        }
+
         function sendGoTo(destinationName) {
             publishData("temi/commands", { action: "goto", destination: destinationName });
         }
@@ -234,7 +465,6 @@
             }
         }
 
-        // NOUVELLE GESTION DU JOYSTICK ET CLAVIER
         let movementLoop = null;
         let currentSpeed = 0.0;
         let currentRotation = 0.0;
@@ -247,7 +477,7 @@
             if (movementLoop) clearInterval(movementLoop);
             movementLoop = setInterval(() => { 
                 publishData("temi/joystick", { speed: currentSpeed, rotation: currentRotation }); 
-            }, 100);
+            }, 100); 
         }
 
         function stopJoy() {
@@ -257,7 +487,6 @@
             publishData("temi/joystick", { speed: 0.0, rotation: 0.0 });
         }
 
-        // Suivi multi-touches
         const activeKeys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 
         function updateJoystickFromKeys() {
@@ -266,8 +495,8 @@
 
             if (activeKeys["ArrowUp"]) s = 1.0;
             if (activeKeys["ArrowDown"]) s = -1.0;
-            if (activeKeys["ArrowLeft"]) r = 0.8; 
-            if (activeKeys["ArrowRight"]) r = -0.8; 
+            if (activeKeys["ArrowLeft"]) r = 0.5;
+            if (activeKeys["ArrowRight"]) r = -0.5;
 
             if (s === 0.0 && r === 0.0) {
                 stopJoy();
