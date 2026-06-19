@@ -41,15 +41,15 @@
         🔴 CONFIGURING MQTT NETWORK...
     </div>
 
-    <!-- Main Layout -->
-    <div class="flex flex-col lg:flex-row gap-6 w-full max-w-7xl mx-auto">
+    <!-- Main Layout (Widened) -->
+    <div class="flex flex-col lg:flex-row gap-6 w-full max-w-[95vw] mx-auto">
         
         <!-- LEFT COLUMN: Video & Call Controls -->
-        <div class="flex-[2] flex flex-col gap-4 bg-temi-panel p-5 rounded-xl shadow-xl min-w-[300px]">
+        <div class="flex-[3] flex flex-col gap-4 bg-temi-panel p-5 rounded-xl shadow-xl min-w-[300px]">
             <h2 class="text-xl font-semibold text-gray-200 border-b border-gray-600 pb-2">Control Center</h2>
             
-            <!-- Video Area -->
-            <div id="video-container" class="relative w-full min-h-[50vh] md:min-h-[60vh] bg-black rounded-lg overflow-hidden flex-grow border border-gray-700">
+            <!-- Video Area (Enlarged) -->
+            <div id="video-container" class="relative w-full min-h-[65vh] md:min-h-[75vh] bg-black rounded-lg overflow-hidden flex-grow border border-gray-700">
                 <!-- Remote Video (Robot Camera) -->
                 <video id="remote-video" class="absolute inset-0 w-full h-full object-cover object-bottom" autoplay playsinline></video>
                 
@@ -69,25 +69,10 @@
                     Disable Video
                 </button>
             </div>
-
-            <!-- Robot Live Status -->
-            <div class="mt-4 bg-temi-bg p-4 rounded-lg border border-gray-700">
-                <h3 class="text-temi-orange font-semibold mb-3 border-b border-gray-700 pb-2">Robot Live Status</h3>
-                <div class="flex flex-col sm:flex-row justify-between gap-4">
-                    <div class="flex justify-between sm:justify-start sm:gap-2 w-full">
-                        <span class="text-gray-400">Current Task:</span>
-                        <span id="robot-task" class="font-bold text-green-500">Idle / Standby</span>
-                    </div>
-                    <div class="flex justify-between sm:justify-start sm:gap-2 w-full">
-                        <span class="text-gray-400">Destination:</span>
-                        <span id="robot-dest" class="font-bold text-yellow-500">-</span>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- RIGHT COLUMN: Controls & Logs -->
-        <div class="flex-1 flex flex-col gap-6 w-full lg:max-w-sm">
+        <div class="flex-[1.5] flex flex-col gap-6 w-full min-w-[350px]">
             
             <!-- Navigation -->
             <div class="bg-temi-panel p-5 rounded-xl shadow-xl">
@@ -104,14 +89,20 @@
                 <h3 class="text-lg font-semibold text-gray-200 mb-1">Manual Teleoperation</h3>
                 <p class="text-xs text-gray-400 mb-4">Use keyboard arrows or D-Pad to drive.</p>
                 
-                <!-- D-Pad - CORRIGÉ : Retour à une taille normale -->
-                <div class="grid grid-cols-3 gap-2 w-32 mx-auto">
-                    <div></div>
-                    <button class="bg-temi-button hover:bg-gray-500 text-white rounded p-3 text-center transition-colors select-none touch-manipulation" onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(1.0, 0.0)" ontouchend="stopJoy()">▲</button>
-                    <div></div>
-                    <button class="bg-temi-button hover:bg-gray-500 text-white rounded p-3 text-center transition-colors select-none touch-manipulation" onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, 0.5)" ontouchend="stopJoy()">◀</button>
-                    <button class="bg-temi-button hover:bg-gray-500 text-white rounded p-3 text-center transition-colors select-none touch-manipulation" onmousedown="startJoy(-1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(-1.0, 0.0)" ontouchend="stopJoy()">▼</button>
-                    <button class="bg-temi-button hover:bg-gray-500 text-white rounded p-3 text-center transition-colors select-none touch-manipulation" onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, -0.5)" ontouchend="stopJoy()">▶</button>
+                <!-- Improved D-Pad Layout -->
+                <div class="grid grid-cols-3 grid-rows-3 gap-2 w-48 mx-auto">
+                    <div class="col-start-2 row-start-1">
+                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-xl" onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(1.0, 0.0)" ontouchend="stopJoy()">▲</button>
+                    </div>
+                    <div class="col-start-1 row-start-2">
+                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-xl" onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, 0.5)" ontouchend="stopJoy()">◀</button>
+                    </div>
+                    <div class="col-start-2 row-start-2">
+                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-xl" onmousedown="startJoy(-1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(-1.0, 0.0)" ontouchend="stopJoy()">▼</button>
+                    </div>
+                    <div class="col-start-3 row-start-2">
+                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-xl" onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, -0.5)" ontouchend="stopJoy()">▶</button>
+                    </div>
                 </div>
             </div>
 
@@ -243,31 +234,7 @@
             } else if (message.destinationName === "temi/webrtc/candidate/robot") {
                 peerConnection.addIceCandidate(new RTCIceCandidate(payload));
             } else if (message.destinationName === "temi/status") {
-                
-                // NOUVEAU : Affichage du statut de navigation du robot en direct
-                if (payload.type === "navigation_status") {
-                    const destEl = document.getElementById("robot-dest");
-                    const taskEl = document.getElementById("robot-task");
-                    
-                    destEl.innerText = payload.location ? payload.location.toUpperCase() : "None";
-                    
-                    let statusText = payload.status;
-                    let statusColorClass = "text-yellow-500"; 
-                    
-                    if (payload.status === "start" || payload.status === "going") {
-                        statusText = "Moving"; statusColorClass = "text-blue-400"; 
-                    } else if (payload.status === "complete") {
-                        statusText = "Arrived"; statusColorClass = "text-green-500"; 
-                    } else if (payload.status === "abort") {
-                        statusText = "Aborted"; statusColorClass = "text-red-500"; 
-                    } else if (payload.status === "calculating") {
-                        statusText = "Calculating Path"; statusColorClass = "text-yellow-500";
-                    }
-                    
-                    taskEl.innerText = statusText;
-                    taskEl.className = `font-bold ${statusColorClass}`;
-                }
-                
+                console.log("Status update received");
             } else if (message.destinationName === "temi/menu") {
                 
                 if (payload.type === "order_validation") {
