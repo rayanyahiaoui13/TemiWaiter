@@ -2,239 +2,236 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     
     <title>Temi Dashboard - Supervisor Mode</title>
+    <!-- Include Tailwind CSS for modern styling and layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        temi: {
+                            orange: '#d35400',       // Deep Temi Orange
+                            'orange-hover': '#e67e22',
+                            dark: '#1e272e',         // Very dark anthracite for background
+                            panel: '#2d3436',        // Dark gray for panels
+                            light: '#f5f6fa',        // Light gray text/elements
+                            green: '#27ae60',        // Success green
+                            'green-hover': '#2ecc71',
+                            red: '#c0392b',          // Danger red
+                            'red-hover': '#e74c3c'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Include Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Include MQTT library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    
     <style>
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f4f5f7; /* Gris très clair, fond type Temi App */
-            color: #333333; 
-            margin: 0; 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
-        }
-        .layout { display: flex; gap: 20px; width: 100%; }
-        .panel { 
-            background: #ffffff; /* Panneaux blancs purs */
-            padding: 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
-            border: 1px solid #e0e0e0;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1e272e; /* temi-dark */
+            color: #f5f6fa; /* temi-light */
         }
         
-        h2, h3, h4 { color: #222222; margin-top: 0; }
-        hr { border: 0; border-top: 1px solid #e0e0e0; margin: 20px 0; }
-        
-        #status-bar { 
-            width: 100%; 
-            padding: 12px; 
-            border-radius: 8px; 
-            font-weight: bold; 
-            text-align: center; 
-            background: #e74c3c; 
-            color: white;
-            box-sizing: border-box;
-            letter-spacing: 1px;
-            text-transform: uppercase;
+        /* Custom scrollbar for panels */
+        ::-webkit-scrollbar {
+            width: 8px;
         }
-        
-        #video-panel { flex: 2; display: flex; flex-direction: column; }
-        #video-container { 
-            width: 100%; 
-            height: 500px; 
-            background: #111111; /* Gardé sombre pour le contraste vidéo */
-            border-radius: 10px; 
-            overflow: hidden; 
-            position: relative; 
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        ::-webkit-scrollbar-track {
+            background: #2d3436; 
+            border-radius: 4px;
         }
-        
-        #remote-video { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            position: absolute;
-            top: 0; left: 0;
+        ::-webkit-scrollbar-thumb {
+            background: #636e72; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b2bec3; 
         }
 
+        #video-container {
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        /* NOUVEAU : Vidéo de l'opérateur (Selfie / Picture in Picture) */
         #local-video {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            width: 160px;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 6px;
-            border: 2px solid #ffffff;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transform: scaleX(-1);
-            background: #222;
-            z-index: 10;
+            transform: scaleX(-1); /* Effet miroir pour le confort de l'opérateur */
         }
 
-        .under-video-controls { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
-        .action-bar { display: flex; gap: 10px; width: 100%; }
-        .action-bar button { margin-bottom: 0; flex: 1; }
-        
-        .system-stats { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 8px; 
-            background: #f9f9f9; 
-            padding: 15px; 
-            border-radius: 8px; 
-            font-size: 14px; 
-            font-weight: bold; 
-            border: 1px solid #e0e0e0; 
+        /* D-PAD specific styles overriding tailwind for complex grid */
+        .d-pad-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 64px);
+            gap: 8px;
+            justify-content: center;
         }
-        .stat-box { display: flex; align-items: center; justify-content: space-between; color: #555; }
-        .stat-value { color: #f39c12; } /* Orange Temi par défaut pour les valeurs */
-
-        #controls-panel { flex: 1; display: flex; flex-direction: column; gap: 20px; }
-        
-        button { 
-            background: #f39c12; /* Orange Temi */
-            color: white; 
-            border: none; 
-            padding: 12px 15px; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            user-select: none; 
-            margin-bottom: 5px; 
-            transition: background 0.2s;
-            text-transform: uppercase;
-            font-size: 13px;
+        .d-pad-btn {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            touch-action: none; /* Prevent scrolling on mobile when using dpad */
+            user-select: none;
         }
-        button:hover { background: #e67e22; }
-        
-        button.secondary { background: #34495e; color: white; }
-        button.secondary:hover { background: #2c3e50; }
-        button.danger { background: #e74c3c; }
-        
-        .d-pad { display: grid; grid-template-columns: repeat(3, 60px); gap: 5px; justify-content: center; margin-top: 10px;}
-        .d-pad button { padding: 15px 0; font-size: 18px; touch-action: none; background: #bdc3c7; color: #333;}
-        .d-pad button:hover { background: #a2abaf; }
         .up { grid-column: 2; }
         .left { grid-column: 1; }
         .right { grid-column: 3; }
         .down { grid-column: 2; }
-
-        .cart-log-container { display: flex; gap: 10px; }
-        .list-box { 
-            flex: 1; 
-            background: #f9f9f9; 
-            padding: 12px; 
-            border-radius: 8px; 
-            border: 1px solid #e0e0e0; 
-        }
-        .list-box h4 { margin-top: 0; color: #333; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid #f39c12; padding-bottom: 5px; display: inline-block; }
-        
-        #live-cart-list, #menu-notifications { 
-            list-style-type: none; 
-            padding: 0; 
-            margin: 0; 
-            font-size: 13px; 
-            overflow-y: auto; 
-            color: #555;
-        }
-        #live-cart-list { min-height: 60px; max-height: 100px; }
-        #menu-notifications { max-height: 120px; }
-        
-        .empty-text { color: #aaa; font-style: italic; }
-        #live-cart-total { color: #e67e22; font-size: 15px; display: block; margin-top: 8px; }
-        
-        .btn-clear { background: #bdc3c7; color: #333; font-size: 11px; padding: 6px; margin-top: 10px; width: 100%; }
-        .btn-clear:hover { background: #95a5a6; }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 </head>
-<body>
+<body class="h-screen flex flex-col p-4 md:p-6 overflow-hidden">
 
-    <div id="status-bar">CONFIGURING MQTT NETWORK...</div>
+    <!-- Top Status Bar -->
+    <div id="status-bar" class="w-full py-3 px-4 rounded-lg font-bold text-center bg-temi-red text-white uppercase tracking-wider mb-6 shadow-md transition-colors duration-300">
+        CONFIGURING MQTT NETWORK...
+    </div>
 
-    <div class="layout">
-        <div id="video-panel" class="panel">
-            <h2>Control Center</h2>
-            <div id="video-container">
-                <video id="remote-video" autoplay playsinline></video>
-                <video id="local-video" autoplay playsinline muted></video>
+    <!-- Main Content Layout -->
+    <div class="flex flex-col lg:flex-row gap-6 h-full min-h-0">
+        
+        <!-- LEFT PANEL: Video and Primary Controls -->
+        <div class="flex-[2] flex flex-col gap-4 bg-temi-panel p-5 rounded-xl shadow-xl min-w-[300px]">
+            <h2 class="text-xl font-semibold text-gray-200 border-b border-gray-600 pb-2">Control Center</h2>
+            
+            <!-- Video Area -->
+            <div id="video-container" class="relative w-full aspect-video bg-black rounded-lg overflow-hidden flex-grow border border-gray-700">
+                <!-- Remote Video (Robot Camera) -->
+                <video id="remote-video" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline></video>
+                
+                <!-- Local Video (Operator Camera - Picture in Picture) -->
+                <video id="local-video" class="absolute bottom-4 right-4 w-32 md:w-40 aspect-video object-cover rounded-md border-2 border-gray-400 bg-gray-800 shadow-lg z-10" autoplay playsinline muted></video>
             </div>
             
-            <div class="under-video-controls">
-                <div class="action-bar">
-                    <button onclick="startWebRTCCall()" style="background: #34495e;">Initialize WebRTC Call</button>
-                    <button onclick="toggleMute()" class="secondary" id="btn-mute">Mute Mic</button>
-                    <button onclick="toggleVideo()" class="secondary" id="btn-video">Disable Video</button>
+            <!-- Under Video Controls -->
+            <div class="flex flex-col sm:flex-row gap-4 mt-2">
+                <!-- Action Buttons -->
+                <div class="flex-1 flex flex-col sm:flex-row gap-2">
+                    <button onclick="startWebRTCCall()" class="flex-[2] bg-temi-orange hover:bg-temi-orange-hover text-white font-bold py-3 px-4 rounded transition-colors shadow-md text-sm md:text-base">
+                        Initialize WebRTC Call
+                    </button>
+                    <button onclick="toggleMute()" id="btn-mute" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-4 rounded transition-colors shadow-md text-sm md:text-base">
+                        Mute Mic
+                    </button>
+                    <button onclick="toggleVideo()" id="btn-video" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-4 rounded transition-colors shadow-md text-sm md:text-base">
+                        Disable Video
+                    </button>
                 </div>
+            </div>
 
-                <div class="system-stats">
-                    <div style="color: #333; font-size: 15px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Robot Live Status</div>
-                    <div class="stat-box">
-                        <span>Current Task:</span>
-                        <span id="robot-task" class="stat-value" style="color:#7f8c8d">Idle / Standby</span>
+            <!-- Robot Live Status -->
+            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-inner mt-2">
+                <div class="text-temi-orange font-semibold text-sm uppercase tracking-wide border-b border-gray-600 pb-2 mb-3">
+                    Robot Live Status
+                </div>
+                <div class="flex flex-col gap-2 text-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-400">Current Task:</span>
+                        <span id="robot-task" class="font-bold text-gray-500">Idle / Standby</span>
                     </div>
-                    <div class="stat-box">
-                        <span>Destination:</span>
-                        <span id="robot-dest" class="stat-value">-</span>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-400">Destination:</span>
+                        <span id="robot-dest" class="font-bold text-temi-orange">-</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="controls-panel" class="panel">
-            <div>
-                <h3>Autonomous Navigation</h3>
-                <button onclick="sendGoTo('home base')" style="width: 100%;">Go to Home Base</button>
-                <button onclick="sendGoTo('table 1')" style="width: 100%;">Go to Table 1</button>
-                <button onclick="sendGoTo('standby')" style="width: 100%;">Go to Standby</button>
+        <!-- RIGHT PANEL: Navigation, Joystick, and Logs -->
+        <div class="flex-1 flex flex-col gap-6 bg-temi-panel p-5 rounded-xl shadow-xl min-w-[280px] overflow-y-auto">
+            
+            <!-- Autonomous Navigation -->
+            <div class="flex flex-col gap-2">
+                <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-1 mb-2">Autonomous Navigation</h3>
+                <button onclick="sendGoTo('home base')" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm">
+                    Go to Home Base
+                </button>
+                <button onclick="sendGoTo('table 1')" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm">
+                    Go to Table 1
+                </button>
+                <button onclick="sendGoTo('standby')" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm">
+                    Go to Standby
+                </button>
             </div>
 
-            <hr>
+            <hr class="border-gray-600">
 
-            <div>
-                <h3>Manual Teleoperation</h3>
-                <p style="font-size: 12px; color: #777; margin-top: 0;">Use keyboard arrows to drive.</p>
-                <div class="d-pad">
-                    <button class="up" onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()">▲</button>
-                    <button class="left" onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()">◀</button>
-                    <button class="right" onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()">▶</button>
-                    <button class="down" onmousedown="startJoy(-1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()">▼</button>
+            <!-- Manual Teleoperation -->
+            <div class="flex flex-col items-center">
+                <div class="w-full text-left">
+                    <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-1 mb-1">Manual Teleoperation</h3>
+                    <p class="text-xs text-gray-400 mb-4">Use keyboard arrows or D-Pad to drive.</p>
+                </div>
+                
+                <div class="d-pad-grid">
+                    <button class="d-pad-btn up bg-gray-600 hover:bg-temi-orange text-white rounded shadow-md transition-colors" 
+                            onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()"
+                            ontouchstart="startJoy(1.0, 0.0); event.preventDefault();" ontouchend="stopJoy(); event.preventDefault();">▲</button>
+                    <button class="d-pad-btn left bg-gray-600 hover:bg-temi-orange text-white rounded shadow-md transition-colors" 
+                            onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()"
+                            ontouchstart="startJoy(0.0, 0.5); event.preventDefault();" ontouchend="stopJoy(); event.preventDefault();">◀</button>
+                    <button class="d-pad-btn right bg-gray-600 hover:bg-temi-orange text-white rounded shadow-md transition-colors" 
+                            onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()"
+                            ontouchstart="startJoy(0.0, -0.5); event.preventDefault();" ontouchend="stopJoy(); event.preventDefault();">▶</button>
+                    <button class="d-pad-btn down bg-gray-600 hover:bg-temi-orange text-white rounded shadow-md transition-colors" 
+                            onmousedown="startJoy(-1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()"
+                            ontouchstart="startJoy(-1.0, 0.0); event.preventDefault();" ontouchend="stopJoy(); event.preventDefault();">▼</button>
                 </div>
             </div>
             
-            <hr>
+            <hr class="border-gray-600">
             
-            <div>
-                <h3>Live Activity</h3>
-                <div class="cart-log-container">
-                    <div class="list-box">
-                        <h4>Customer Cart</h4>
-                        <ul id="live-cart-list">
-                            <li class="empty-text">Empty cart...</li>
+            <!-- Live Activity & Cart -->
+            <div class="flex flex-col flex-grow min-h-0">
+                <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-1 mb-3">Live Activity</h3>
+                
+                <div class="flex flex-col md:flex-row gap-4 flex-grow min-h-0">
+                    
+                    <!-- Customer Cart -->
+                    <div class="flex-1 bg-gray-800 p-3 rounded-lg border border-gray-700 flex flex-col">
+                        <h4 class="text-temi-orange font-semibold text-sm mb-2">Customer Cart</h4>
+                        
+                        <ul id="live-cart-list" class="flex-grow overflow-y-auto text-sm text-gray-300 space-y-1 pr-1">
+                            <li class="text-gray-500 italic text-xs">Empty cart...</li>
                         </ul>
-                        <hr style="margin: 8px 0; border-top: 1px dashed #ccc;">
-                        <strong id="live-cart-total">Total: RM0.00</strong>
-                        <button onclick="clearLiveCart()" class="btn-clear">Clear / Resync</button>
+                        
+                        <div class="mt-2 pt-2 border-t border-gray-600">
+                            <strong id="live-cart-total" class="text-temi-green text-sm block">Total: RM0.00</strong>
+                            <button onclick="clearLiveCart()" class="mt-2 w-full bg-gray-600 hover:bg-gray-500 text-gray-200 text-xs py-1.5 px-2 rounded transition-colors">
+                                Clear / Resync
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="list-box">
-                        <h4>Activity Log</h4>
-                        <ul id="menu-notifications">
-                            <li class="empty-text">Waiting for actions...</li>
+                    <!-- Activity Log -->
+                    <div class="flex-1 bg-gray-800 p-3 rounded-lg border border-gray-700 flex flex-col">
+                        <h4 class="text-gray-300 font-semibold text-sm mb-2">Activity Log</h4>
+                        
+                        <ul id="menu-notifications" class="flex-grow overflow-y-auto text-xs text-gray-400 space-y-2 pr-1">
+                            <li class="italic">Waiting for actions...</li>
                         </ul>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
     <script>
+        // --- HIVEMQ CLOUD CREDENTIALS ---
         const BROKER = "0cb6b7de17494a0b8d1fbb40718195cd.s1.eu.hivemq.cloud"; 
         const PORT = 8884; 
         const CLIENT_ID = "DashboardWebRTC_" + Math.random().toString(16).substr(2, 8);
@@ -244,6 +241,7 @@
         let peerConnection = null;
         let globalLocalStream = null;
 
+        // --- VIRTUAL CART MANAGEMENT ---
         const menuPrices = {
             "Caesar Salad": 8.50, "Garlic Bread": 5.00,
             "Temi Burger": 15.00, "Grilled Salmon": 18.00,
@@ -257,7 +255,7 @@
             const totalEl = document.getElementById("live-cart-total");
             
             if (liveCart.length === 0) {
-                list.innerHTML = '<li class="empty-text">Empty cart...</li>';
+                list.innerHTML = '<li class="text-gray-500 italic text-xs">Empty cart...</li>';
                 totalEl.innerText = "Total: RM0.00";
                 return;
             }
@@ -268,8 +266,8 @@
                 let price = menuPrices[item] || 0;
                 total += price;
                 let li = document.createElement("li");
-                li.innerText = `+ ${item} - RM${price.toFixed(2)}`;
-                li.style.color = "#333";
+                li.className = "flex justify-between items-center py-0.5 border-b border-gray-700 last:border-0";
+                li.innerHTML = `<span>${item}</span><span class="text-gray-400 font-mono text-xs">RM${price.toFixed(2)}</span>`;
                 list.appendChild(li);
             });
             totalEl.innerText = `Total: RM${total.toFixed(2)}`;
@@ -280,6 +278,7 @@
             updateLiveCartUI();
         }
 
+        // --- WEBRTC CONFIGURATION (STUN + TURN Metered) ---
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -293,7 +292,7 @@
 
         mqtt.onConnectionLost = function (responseObj) {
             const bar = document.getElementById("status-bar");
-            bar.style.background = "#e74c3c";
+            bar.classList.replace("bg-temi-green", "bg-temi-red");
             bar.innerText = "MQTT CONNECTION LOST";
         };
 
@@ -306,32 +305,41 @@
                 peerConnection.addIceCandidate(new RTCIceCandidate(payload));
             } else if (message.destinationName === "temi/status") {
                 
+                // Update Robot Live Status UI
                 if (payload.type === "navigation_status") {
                     const destEl = document.getElementById("robot-dest");
                     const taskEl = document.getElementById("robot-task");
                     
-                    destEl.innerText = payload.location ? payload.location.toUpperCase() : "NONE";
+                    destEl.innerText = payload.location ? payload.location.toUpperCase() : "None";
                     
                     let statusText = payload.status.toUpperCase();
-                    let statusColor = "#f39c12"; 
+                    
+                    // Reset styling
+                    taskEl.className = "font-bold";
                     
                     if (payload.status === "start" || payload.status === "going") {
-                        statusText = "MOVING"; statusColor = "#3498db"; 
+                        statusText = "Moving"; 
+                        taskEl.classList.add("text-blue-400");
                     } else if (payload.status === "complete") {
-                        statusText = "ARRIVED"; statusColor = "#2ecc71"; 
+                        statusText = "Arrived"; 
+                        taskEl.classList.add("text-temi-green");
                     } else if (payload.status === "abort") {
-                        statusText = "ABORTED"; statusColor = "#e74c3c"; 
+                        statusText = "Aborted"; 
+                        taskEl.classList.add("text-temi-red");
                     } else if (payload.status === "calculating") {
-                        statusText = "CALCULATING PATH";
+                        statusText = "Calculating Path";
+                        taskEl.classList.add("text-gray-400");
+                    } else {
+                        taskEl.classList.add("text-gray-500");
                     }
                     
                     taskEl.innerText = statusText;
-                    taskEl.style.color = statusColor;
                 }
                 
             } else if (message.destinationName === "temi/menu") {
                 
                 if (payload.type === "order_validation") {
+                    // Generate CSV
                     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
                     csvContent += "Date_Time;Item;Price_RM\n"; 
 
@@ -342,34 +350,37 @@
 
                     let encodedUri = encodeURI(csvContent);
                     let link = document.createElement("a");
-                    let safeFileName = payload.timestamp.replace(/[: ]/g, "_");
                     link.setAttribute("href", encodedUri);
+                    let safeFileName = payload.timestamp.replace(/[: ]/g, "_");
                     link.setAttribute("download", `Temi_Order_${safeFileName}.csv`);
                     document.body.appendChild(link); 
                     link.click();
                     document.body.removeChild(link);
 
+                    // Optional: Play a tiny beep
                     new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(e => {});
                     
+                    // Add to Log
                     const list = document.getElementById("menu-notifications");
                     if(list && list.innerHTML.includes("Waiting")) list.innerHTML = "";
                     let li = document.createElement("li");
+                    li.className = "text-temi-green font-semibold py-1 border-b border-gray-700 last:border-0";
                     li.innerText = `[ORDER VALIDATED] ${payload.items.length} items (Total: RM${payload.total.toFixed(2)})`;
-                    li.style.color = "#27ae60";
-                    li.style.fontWeight = "bold";
                     if(list) list.prepend(li);
 
                     clearLiveCart();
                 } 
                 else if (payload.request) {
+                    // Add to Log
                     const list = document.getElementById("menu-notifications");
                     if(list && list.innerHTML.includes("Waiting")) list.innerHTML = "";
                     
                     let li = document.createElement("li");
+                    li.className = "text-gray-300 py-1 border-b border-gray-700 last:border-0";
                     li.innerText = `Added: ${payload.request}`;
-                    li.style.color = "#2980b9";
                     if(list) list.prepend(li);
 
+                    // Update Virtual Cart
                     liveCart.push(payload.request);
                     updateLiveCartUI();
                 }
@@ -382,8 +393,9 @@
             useSSL: true,                    
             onSuccess: function () { 
                 const bar = document.getElementById("status-bar");
-                bar.style.background = "#2ecc71";
-                bar.innerText = "ONLINE (CLOUD) - READY FOR VIDEO";
+                bar.classList.replace("bg-temi-red", "bg-temi-green");
+                bar.innerText = "ONLINE (CLOUD) - Ready for video";
+                
                 mqtt.subscribe("temi/webrtc/answer");
                 mqtt.subscribe("temi/webrtc/candidate/robot");
                 mqtt.subscribe("temi/status");
@@ -392,7 +404,7 @@
             },
             onFailure: function (message) {
                 const bar = document.getElementById("status-bar");
-                bar.style.background = "#e74c3c";
+                bar.classList.replace("bg-temi-green", "bg-temi-red");
                 bar.innerText = "CLOUD CONNECTION FAILED: " + message.errorMessage;
             }
         });
@@ -406,6 +418,7 @@
             }
         }
 
+        // --- WEBRTC CALL INITIALIZATION ---
         async function startWebRTCCall() {
             peerConnection = new RTCPeerConnection(rtcConfig);
 
@@ -422,6 +435,15 @@
                 globalLocalStream = localStream;
                 document.getElementById("local-video").srcObject = localStream;
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                
+                // Visual feedback on the button
+                const btn = document.querySelector('button[onclick="startWebRTCCall()"]');
+                btn.innerText = "Call Active";
+                btn.classList.replace("bg-temi-orange", "bg-gray-600");
+                btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-gray-500");
+                btn.disabled = true;
+                btn.style.cursor = "default";
+
             } catch (e) {
                 console.warn("Camera/Mic not accessible.", e);
                 alert("Please allow camera access.");
@@ -432,6 +454,7 @@
             publishData("temi/webrtc/offer", { type: offer.type, sdp: offer.sdp });
         }
 
+        // --- MEDIA CONTROLS ---
         let isMuted = false;
         let isVideoStopped = false;
 
@@ -441,7 +464,14 @@
             globalLocalStream.getAudioTracks()[0].enabled = !isMuted;
             const btn = document.getElementById('btn-mute');
             btn.innerText = isMuted ? "Unmute Mic" : "Mute Mic";
-            btn.style.background = isMuted ? "#e74c3c" : "#34495e";
+            
+            if(isMuted) {
+                btn.classList.replace("bg-gray-600", "bg-temi-orange");
+                btn.classList.replace("hover:bg-gray-500", "hover:bg-temi-orange-hover");
+            } else {
+                btn.classList.replace("bg-temi-orange", "bg-gray-600");
+                btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-gray-500");
+            }
         }
 
         function toggleVideo() {
@@ -450,9 +480,17 @@
             globalLocalStream.getVideoTracks()[0].enabled = !isVideoStopped;
             const btn = document.getElementById('btn-video');
             btn.innerText = isVideoStopped ? "Enable Video" : "Disable Video";
-            btn.style.background = isVideoStopped ? "#e74c3c" : "#34495e";
+            
+            if(isVideoStopped) {
+                btn.classList.replace("bg-gray-600", "bg-temi-orange");
+                btn.classList.replace("hover:bg-gray-500", "hover:bg-temi-orange-hover");
+            } else {
+                btn.classList.replace("bg-temi-orange", "bg-gray-600");
+                btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-gray-500");
+            }
         }
 
+        // --- ROBOT CONTROLS ---
         function sendGoTo(destinationName) {
             publishData("temi/commands", { action: "goto", destination: destinationName });
         }
