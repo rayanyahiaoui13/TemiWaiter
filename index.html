@@ -3,245 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    
     <title>Temi Dashboard - Supervisor Mode</title>
-    <!-- Include Tailwind CSS for modern styling and layout -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        temi: {
-                            orange: '#d35400',       // Deep Temi Orange
-                            'orange-hover': '#e67e22',
-                            dark: '#1e272e',         // Very dark anthracite for background
-                            panel: '#2d3436',        // Dark gray for panels
-                            light: '#f5f6fa',        // Light gray text/elements
-                            green: '#27ae60',        // Success green
-                            'green-hover': '#2ecc71',
-                            red: '#c0392b',          // Danger red
-                            'red-hover': '#e74c3c'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                        'temi-bg': '#1e2124',
+                        'temi-panel': '#282b30',
+                        'temi-orange': '#e67e22',
+                        'temi-orange-hover': '#d35400',
+                        'temi-button': '#424549',
+                        'temi-button-hover': '#36393e',
                     }
                 }
             }
         }
     </script>
-    <!-- Include Google Fonts (Inter) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- Include MQTT library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-    
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1e272e; /* temi-dark */
-            color: #f5f6fa; /* temi-light */
+        /* Hide scrollbar for Chrome, Safari and Opera */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
-        
-        /* Custom scrollbar for panels */
-        ::-webkit-scrollbar {
-            width: 8px;
+        /* Hide scrollbar for IE, Edge and Firefox */
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
-        ::-webkit-scrollbar-track {
-            background: #2d3436; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #636e72; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #b2bec3; 
-        }
-
-        #video-container {
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
-        }
-
-        /* NOUVEAU : Vidéo de l'opérateur (Selfie / Picture in Picture) */
-        #local-video {
-            transform: scaleX(-1); /* Effet miroir pour le confort de l'opérateur */
-        }
-
-        /* D-PAD specific styles overriding tailwind for complex grid */
-        .d-pad-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 64px);
-            gap: 8px;
-            justify-content: center;
-        }
-        .d-pad-btn {
-            height: 64px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            touch-action: none; /* Prevent scrolling on mobile when using dpad */
-            user-select: none;
-        }
-        .up { grid-column: 2; }
-        .left { grid-column: 1; }
-        .right { grid-column: 3; }
-        .down { grid-column: 2; }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4 md:p-6 overflow-hidden">
+<body class="bg-temi-bg text-gray-300 font-sans p-4 md:p-6 min-h-screen flex flex-col gap-6">
 
-    <!-- Top Status Bar -->
-    <div id="status-bar" class="w-full py-3 px-4 rounded-lg font-bold text-center bg-temi-red text-white uppercase tracking-wider mb-6 shadow-md transition-colors duration-300">
-        CONFIGURING MQTT NETWORK...
+    <!-- Status Bar -->
+    <div id="status-bar" class="w-full p-3 rounded-lg font-bold text-center bg-red-600 text-white shadow-md transition-colors duration-300">
+        🔴 CONFIGURING MQTT NETWORK...
     </div>
 
-    <!-- Main Content Layout -->
-    <div class="flex flex-col lg:flex-row gap-6 h-full min-h-0">
+    <!-- Main Layout -->
+    <div class="flex flex-col lg:flex-row gap-6 w-full max-w-7xl mx-auto">
         
-        <!-- LEFT PANEL: Video and Primary Controls -->
+        <!-- LEFT COLUMN: Video & Call Controls -->
         <div class="flex-[2] flex flex-col gap-4 bg-temi-panel p-5 rounded-xl shadow-xl min-w-[300px]">
             <h2 class="text-xl font-semibold text-gray-200 border-b border-gray-600 pb-2">Control Center</h2>
             
             <!-- Video Area -->
-            <div id="video-container" class="relative w-full aspect-video bg-black rounded-lg overflow-hidden flex-grow border border-gray-700">
+            <div id="video-container" class="relative w-full min-h-[50vh] md:min-h-[60vh] bg-black rounded-lg overflow-hidden flex-grow border border-gray-700">
                 <!-- Remote Video (Robot Camera) -->
-                <video id="remote-video" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline></video>
+                <video id="remote-video" class="absolute inset-0 w-full h-full object-cover object-bottom" autoplay playsinline></video>
                 
                 <!-- Local Video (Operator Camera - Picture in Picture) -->
-                <video id="local-video" class="absolute bottom-4 right-4 w-32 md:w-40 aspect-video object-cover rounded-md border-2 border-gray-400 bg-gray-800 shadow-lg z-10" autoplay playsinline muted></video>
+                <video id="local-video" class="absolute bottom-4 right-4 w-48 md:w-72 aspect-video object-cover rounded-md border-2 border-gray-400 bg-gray-800 shadow-lg z-10" autoplay playsinline muted></video>
             </div>
             
             <!-- Under Video Controls -->
             <div class="flex flex-col sm:flex-row gap-4 mt-2">
-                <!-- Action Buttons -->
-                <div class="flex-1 flex flex-col sm:flex-row gap-2">
-                    <button onclick="startWebRTCCall()" class="flex-[2] bg-temi-orange hover:bg-temi-orange-hover text-white font-bold py-3 px-4 rounded transition-colors shadow-md text-sm md:text-base">
-                        Initialize WebRTC Call
-                    </button>
-                    <button onclick="toggleMute()" id="btn-mute" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-4 rounded transition-colors shadow-md text-sm md:text-base">
-                        Mute Mic
-                    </button>
-                    <button onclick="toggleVideo()" id="btn-video" class="flex-1 bg-gray-600 hover:bg-gray-500 text-white font-semibold py-3 px-4 rounded transition-colors shadow-md text-sm md:text-base">
-                        Disable Video
-                    </button>
-                </div>
+                <button onclick="startWebRTCCall()" id="btn-call" class="flex-2 bg-temi-orange hover:bg-temi-orange-hover text-white font-bold py-3 px-4 rounded-lg shadow transition-colors w-full sm:w-auto text-center">
+                    Initialize WebRTC Call
+                </button>
+                <button onclick="toggleMute()" id="btn-mute" class="flex-1 bg-temi-button hover:bg-temi-button-hover text-gray-200 font-semibold py-3 px-4 rounded-lg shadow transition-colors w-full sm:w-auto text-center">
+                    Mute Mic
+                </button>
+                <button onclick="toggleVideo()" id="btn-video" class="flex-1 bg-temi-button hover:bg-temi-button-hover text-gray-200 font-semibold py-3 px-4 rounded-lg shadow transition-colors w-full sm:w-auto text-center">
+                    Disable Video
+                </button>
             </div>
 
             <!-- Robot Live Status -->
-            <div class="bg-gray-800 p-4 rounded-lg border border-gray-700 shadow-inner mt-2">
-                <div class="text-temi-orange font-semibold text-sm uppercase tracking-wide border-b border-gray-600 pb-2 mb-3">
-                    Robot Live Status
-                </div>
-                <div class="flex flex-col gap-2 text-sm">
-                    <div class="flex justify-between items-center">
+            <div class="mt-4 bg-temi-bg p-4 rounded-lg border border-gray-700">
+                <h3 class="text-temi-orange font-semibold mb-3 border-b border-gray-700 pb-2">Robot Live Status</h3>
+                <div class="flex flex-col sm:flex-row justify-between gap-4">
+                    <div class="flex justify-between sm:justify-start sm:gap-2 w-full">
                         <span class="text-gray-400">Current Task:</span>
-                        <span id="robot-task" class="font-bold text-gray-500">Idle / Standby</span>
+                        <span id="robot-task" class="font-bold text-green-500">Idle / Standby</span>
                     </div>
-                    <div class="flex justify-between items-center">
+                    <div class="flex justify-between sm:justify-start sm:gap-2 w-full">
                         <span class="text-gray-400">Destination:</span>
-                        <span id="robot-dest" class="font-bold text-temi-orange">-</span>
+                        <span id="robot-dest" class="font-bold text-yellow-500">-</span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT PANEL: Navigation, Joystick, and Logs -->
-        <div class="flex-1 flex flex-col gap-6 bg-temi-panel p-5 rounded-xl shadow-xl min-w-[280px] overflow-y-auto">
+        <!-- RIGHT COLUMN: Controls & Logs -->
+        <div class="flex-1 flex flex-col gap-6 w-full lg:max-w-sm">
             
-            <!-- Autonomous Navigation -->
-            <div class="flex flex-col gap-2">
-                <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-1 mb-2">Autonomous Navigation</h3>
-                <button onclick="sendGoTo('home base')" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm">
-                    Go to Home Base
-                </button>
-                <button onclick="sendGoTo('table 1')" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm">
-                    Go to Table 1
-                </button>
-                <button onclick="sendGoTo('standby')" class="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded transition-colors text-sm">
-                    Go to Standby
-                </button>
+            <!-- Navigation -->
+            <div class="bg-temi-panel p-5 rounded-xl shadow-xl">
+                <h3 class="text-lg font-semibold text-gray-200 mb-3">Autonomous Navigation</h3>
+                <div class="flex flex-col gap-2">
+                    <button onclick="sendGoTo('home base')" class="bg-temi-button hover:bg-temi-button-hover text-gray-200 font-medium py-2 px-4 rounded shadow transition-colors">Go to Home Base</button>
+                    <button onclick="sendGoTo('table 1')" class="bg-temi-button hover:bg-temi-button-hover text-gray-200 font-medium py-2 px-4 rounded shadow transition-colors">Go to Table 1</button>
+                    <button onclick="sendGoTo('standby')" class="bg-temi-button hover:bg-temi-button-hover text-gray-200 font-medium py-2 px-4 rounded shadow transition-colors">Go to Standby</button>
+                </div>
             </div>
-
-            <hr class="border-gray-600">
 
             <!-- Manual Teleoperation -->
-            <div class="flex flex-col items-center">
-                <div class="w-full text-left">
-                    <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-1 mb-1">Manual Teleoperation</h3>
-                    <p class="text-xs text-gray-400 mb-4">Use keyboard arrows or D-Pad to drive.</p>
-                </div>
+            <div class="bg-temi-panel p-5 rounded-xl shadow-xl">
+                <h3 class="text-lg font-semibold text-gray-200 mb-1">Manual Teleoperation</h3>
+                <p class="text-xs text-gray-400 mb-4">Use keyboard arrows or D-Pad to drive.</p>
                 
-                <div class="d-pad-grid">
-                    <button class="d-pad-btn up bg-gray-600 hover:bg-temi-orange text-white rounded shadow-md transition-colors" 
-                            onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()"
-                            ontouchstart="startJoy(1.0, 0.0); event.preventDefault();" ontouchend="stopJoy(); event.preventDefault();">▲</button>
-                    <button class="d-pad-btn left bg-gray-600 hover:bg-temi-orange text-white rounded shadow-md transition-colors" 
-                            onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()"
-                            ontouchstart="startJoy(0.0, 0.5); event.preventDefault();" ontouchend="stopJoy(); event.preventDefault();">◀</button>
-                    <button class="d-pad-btn right bg-gray-600 hover:bg-temi-orange text-white rounded shadow-md transition-colors" 
-                            onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()"
-                            ontouchstart="startJoy(0.0, -0.5); event.preventDefault();" ontouchend="stopJoy(); event.preventDefault();">▶</button>
-                    <button class="d-pad-btn down bg-gray-600 hover:bg-temi-orange text-white rounded shadow-md transition-colors" 
-                            onmousedown="startJoy(-1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()"
-                            ontouchstart="startJoy(-1.0, 0.0); event.preventDefault();" ontouchend="stopJoy(); event.preventDefault();">▼</button>
+                <!-- D-Pad - CORRIGÉ : Retour à une taille normale -->
+                <div class="grid grid-cols-3 gap-2 w-32 mx-auto">
+                    <div></div>
+                    <button class="bg-temi-button hover:bg-gray-500 text-white rounded p-3 text-center transition-colors select-none touch-manipulation" onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(1.0, 0.0)" ontouchend="stopJoy()">▲</button>
+                    <div></div>
+                    <button class="bg-temi-button hover:bg-gray-500 text-white rounded p-3 text-center transition-colors select-none touch-manipulation" onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, 0.5)" ontouchend="stopJoy()">◀</button>
+                    <button class="bg-temi-button hover:bg-gray-500 text-white rounded p-3 text-center transition-colors select-none touch-manipulation" onmousedown="startJoy(-1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(-1.0, 0.0)" ontouchend="stopJoy()">▼</button>
+                    <button class="bg-temi-button hover:bg-gray-500 text-white rounded p-3 text-center transition-colors select-none touch-manipulation" onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, -0.5)" ontouchend="stopJoy()">▶</button>
                 </div>
             </div>
-            
-            <hr class="border-gray-600">
-            
+
             <!-- Live Activity & Cart -->
-            <div class="flex flex-col flex-grow min-h-0">
-                <h3 class="text-lg font-semibold text-gray-200 border-b border-gray-600 pb-1 mb-3">Live Activity</h3>
+            <div class="bg-temi-panel p-5 rounded-xl shadow-xl flex-grow flex flex-col">
+                <h3 class="text-lg font-semibold text-gray-200 mb-3">Live Activity</h3>
                 
-                <div class="flex flex-col md:flex-row gap-4 flex-grow min-h-0">
+                <!-- CORRIGÉ : Superposition verticale pour éviter l'écrasement -->
+                <div class="flex flex-col gap-4 flex-grow">
                     
                     <!-- Customer Cart -->
-                    <div class="flex-1 bg-gray-800 p-3 rounded-lg border border-gray-700 flex flex-col">
-                        <h4 class="text-temi-orange font-semibold text-sm mb-2">Customer Cart</h4>
-                        
-                        <ul id="live-cart-list" class="flex-grow overflow-y-auto text-sm text-gray-300 space-y-1 pr-1">
-                            <li class="text-gray-500 italic text-xs">Empty cart...</li>
+                    <div class="bg-temi-bg p-3 rounded-lg border border-gray-700 flex flex-col">
+                        <h4 class="text-temi-orange text-sm font-semibold mb-2">Customer Cart</h4>
+                        <ul id="live-cart-list" class="text-sm text-gray-300 flex-grow min-h-[4rem] max-h-32 overflow-y-auto no-scrollbar space-y-1">
+                            <li class="text-gray-500 italic">Empty cart...</li>
                         </ul>
-                        
-                        <div class="mt-2 pt-2 border-t border-gray-600">
-                            <strong id="live-cart-total" class="text-temi-green text-sm block">Total: RM0.00</strong>
-                            <button onclick="clearLiveCart()" class="mt-2 w-full bg-gray-600 hover:bg-gray-500 text-gray-200 text-xs py-1.5 px-2 rounded transition-colors">
-                                Clear / Resync
-                            </button>
+                        <div class="mt-2 pt-2 border-t border-gray-700 flex justify-between items-center">
+                            <strong id="live-cart-total" class="text-green-500 text-sm">Total: RM0.00</strong>
+                            <button onclick="clearLiveCart()" class="bg-gray-700 hover:bg-gray-600 text-xs text-white py-1 px-2 rounded transition-colors">Clear / Resync</button>
                         </div>
                     </div>
 
                     <!-- Activity Log -->
-                    <div class="flex-1 bg-gray-800 p-3 rounded-lg border border-gray-700 flex flex-col">
-                        <h4 class="text-gray-300 font-semibold text-sm mb-2">Activity Log</h4>
-                        
-                        <ul id="menu-notifications" class="flex-grow overflow-y-auto text-xs text-gray-400 space-y-2 pr-1">
-                            <li class="italic">Waiting for actions...</li>
+                    <div class="bg-temi-bg p-3 rounded-lg border border-gray-700 flex flex-col flex-grow">
+                        <h4 class="text-temi-orange text-sm font-semibold mb-2">Activity Log</h4>
+                        <ul id="menu-notifications" class="text-sm text-gray-300 min-h-[4rem] max-h-32 overflow-y-auto no-scrollbar space-y-1">
+                            <li class="text-gray-500 italic">Waiting for actions...</li>
                         </ul>
                     </div>
+                    
                 </div>
             </div>
-
+            
         </div>
     </div>
 
     <script>
-        // --- HIVEMQ CLOUD CREDENTIALS ---
+        // ==========================================
+        // HIVEMQ CLOUD CONFIGURATION
+        // ==========================================
         const BROKER = "0cb6b7de17494a0b8d1fbb40718195cd.s1.eu.hivemq.cloud"; 
         const PORT = 8884; 
         const CLIENT_ID = "DashboardWebRTC_" + Math.random().toString(16).substr(2, 8);
         
         const mqtt = new Paho.MQTT.Client(BROKER, PORT, CLIENT_ID);
         
+        // ==========================================
+        // STATE VARIABLES
+        // ==========================================
         let peerConnection = null;
-        let globalLocalStream = null;
+        let globalLocalStream = null; 
+        let isMuted = false;
+        let isVideoStopped = false;
 
-        // --- VIRTUAL CART MANAGEMENT ---
+        // VIRTUAL CART STATE
         const menuPrices = {
             "Caesar Salad": 8.50, "Garlic Bread": 5.00,
             "Temi Burger": 15.00, "Grilled Salmon": 18.00,
@@ -250,35 +175,7 @@
         };
         let liveCart = [];
 
-        function updateLiveCartUI() {
-            const list = document.getElementById("live-cart-list");
-            const totalEl = document.getElementById("live-cart-total");
-            
-            if (liveCart.length === 0) {
-                list.innerHTML = '<li class="text-gray-500 italic text-xs">Empty cart...</li>';
-                totalEl.innerText = "Total: RM0.00";
-                return;
-            }
-
-            list.innerHTML = "";
-            let total = 0;
-            liveCart.forEach(item => {
-                let price = menuPrices[item] || 0;
-                total += price;
-                let li = document.createElement("li");
-                li.className = "flex justify-between items-center py-0.5 border-b border-gray-700 last:border-0";
-                li.innerHTML = `<span>${item}</span><span class="text-gray-400 font-mono text-xs">RM${price.toFixed(2)}</span>`;
-                list.appendChild(li);
-            });
-            totalEl.innerText = `Total: RM${total.toFixed(2)}`;
-        }
-
-        function clearLiveCart() {
-            liveCart = [];
-            updateLiveCartUI();
-        }
-
-        // --- WEBRTC CONFIGURATION (STUN + TURN Metered) ---
+        // WEBRTC CONFIGURATION (STUN + TURN Metered)
         const rtcConfig = { 
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
@@ -290,10 +187,52 @@
             ] 
         };
 
+        // ==========================================
+        // UI UPDATE FUNCTIONS
+        // ==========================================
+        function updateLiveCartUI() {
+            const list = document.getElementById("live-cart-list");
+            const totalEl = document.getElementById("live-cart-total");
+            
+            if (liveCart.length === 0) {
+                list.innerHTML = '<li class="text-gray-500 italic">Empty cart...</li>';
+                totalEl.innerText = "Total: RM0.00";
+                return;
+            }
+
+            list.innerHTML = "";
+            let total = 0;
+            liveCart.forEach(item => {
+                let price = menuPrices[item] || 0;
+                total += price;
+                let li = document.createElement("li");
+                li.innerText = `✓ ${item} - RM${price.toFixed(2)}`;
+                list.appendChild(li);
+            });
+            totalEl.innerText = `Total: RM${total.toFixed(2)}`;
+        }
+
+        function clearLiveCart() {
+            liveCart = [];
+            updateLiveCartUI();
+        }
+
+        function addLog(text, colorClass = "text-yellow-500", bold = false) {
+            const list = document.getElementById("menu-notifications");
+            if(list && list.innerHTML.includes("Waiting")) list.innerHTML = "";
+            let li = document.createElement("li");
+            li.innerText = text;
+            li.className = `${colorClass} ${bold ? 'font-bold' : ''}`;
+            if(list) list.prepend(li);
+        }
+
+        // ==========================================
+        // MQTT LOGIC
+        // ==========================================
         mqtt.onConnectionLost = function (responseObj) {
-            const bar = document.getElementById("status-bar");
-            bar.classList.replace("bg-temi-green", "bg-temi-red");
-            bar.innerText = "MQTT CONNECTION LOST";
+            const sb = document.getElementById("status-bar");
+            sb.classList.replace("bg-green-600", "bg-red-600");
+            sb.innerText = "🔴 MQTT CONNECTION LOST";
         };
 
         mqtt.onMessageArrived = function (message) {
@@ -305,41 +244,34 @@
                 peerConnection.addIceCandidate(new RTCIceCandidate(payload));
             } else if (message.destinationName === "temi/status") {
                 
-                // Update Robot Live Status UI
+                // NOUVEAU : Affichage du statut de navigation du robot en direct
                 if (payload.type === "navigation_status") {
                     const destEl = document.getElementById("robot-dest");
                     const taskEl = document.getElementById("robot-task");
                     
                     destEl.innerText = payload.location ? payload.location.toUpperCase() : "None";
                     
-                    let statusText = payload.status.toUpperCase();
-                    
-                    // Reset styling
-                    taskEl.className = "font-bold";
+                    let statusText = payload.status;
+                    let statusColorClass = "text-yellow-500"; 
                     
                     if (payload.status === "start" || payload.status === "going") {
-                        statusText = "Moving"; 
-                        taskEl.classList.add("text-blue-400");
+                        statusText = "Moving"; statusColorClass = "text-blue-400"; 
                     } else if (payload.status === "complete") {
-                        statusText = "Arrived"; 
-                        taskEl.classList.add("text-temi-green");
+                        statusText = "Arrived"; statusColorClass = "text-green-500"; 
                     } else if (payload.status === "abort") {
-                        statusText = "Aborted"; 
-                        taskEl.classList.add("text-temi-red");
+                        statusText = "Aborted"; statusColorClass = "text-red-500"; 
                     } else if (payload.status === "calculating") {
-                        statusText = "Calculating Path";
-                        taskEl.classList.add("text-gray-400");
-                    } else {
-                        taskEl.classList.add("text-gray-500");
+                        statusText = "Calculating Path"; statusColorClass = "text-yellow-500";
                     }
                     
                     taskEl.innerText = statusText;
+                    taskEl.className = `font-bold ${statusColorClass}`;
                 }
                 
             } else if (message.destinationName === "temi/menu") {
                 
                 if (payload.type === "order_validation") {
-                    // Generate CSV
+                    // CSV Generation
                     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
                     csvContent += "Date_Time;Item;Price_RM\n"; 
 
@@ -357,30 +289,15 @@
                     link.click();
                     document.body.removeChild(link);
 
-                    // Optional: Play a tiny beep
+                    // Audio Alert
                     new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(e => {});
                     
-                    // Add to Log
-                    const list = document.getElementById("menu-notifications");
-                    if(list && list.innerHTML.includes("Waiting")) list.innerHTML = "";
-                    let li = document.createElement("li");
-                    li.className = "text-temi-green font-semibold py-1 border-b border-gray-700 last:border-0";
-                    li.innerText = `[ORDER VALIDATED] ${payload.items.length} items (Total: RM${payload.total.toFixed(2)})`;
-                    if(list) list.prepend(li);
-
+                    // UI Update
+                    addLog(`ORDER VALIDATED: ${payload.items.length} items (Total: RM${payload.total.toFixed(2)})`, "text-green-500", true);
                     clearLiveCart();
                 } 
                 else if (payload.request) {
-                    // Add to Log
-                    const list = document.getElementById("menu-notifications");
-                    if(list && list.innerHTML.includes("Waiting")) list.innerHTML = "";
-                    
-                    let li = document.createElement("li");
-                    li.className = "text-gray-300 py-1 border-b border-gray-700 last:border-0";
-                    li.innerText = `Added: ${payload.request}`;
-                    if(list) list.prepend(li);
-
-                    // Update Virtual Cart
+                    addLog(`+ ${payload.request}`, "text-yellow-500");
                     liveCart.push(payload.request);
                     updateLiveCartUI();
                 }
@@ -392,9 +309,9 @@
             password: "TestTemi1",     
             useSSL: true,                    
             onSuccess: function () { 
-                const bar = document.getElementById("status-bar");
-                bar.classList.replace("bg-temi-red", "bg-temi-green");
-                bar.innerText = "ONLINE (CLOUD) - Ready for video";
+                const sb = document.getElementById("status-bar");
+                sb.classList.replace("bg-red-600", "bg-green-600");
+                sb.innerText = "🟢 ONLINE (CLOUD) - Ready for video";
                 
                 mqtt.subscribe("temi/webrtc/answer");
                 mqtt.subscribe("temi/webrtc/candidate/robot");
@@ -403,9 +320,9 @@
                 publishMode('MANUEL'); 
             },
             onFailure: function (message) {
-                const bar = document.getElementById("status-bar");
-                bar.classList.replace("bg-temi-green", "bg-temi-red");
-                bar.innerText = "CLOUD CONNECTION FAILED: " + message.errorMessage;
+                const sb = document.getElementById("status-bar");
+                sb.classList.replace("bg-green-600", "bg-red-600");
+                sb.innerText = "🔴 CLOUD CONNECTION FAILED: " + message.errorMessage;
             }
         });
 
@@ -418,7 +335,9 @@
             }
         }
 
-        // --- WEBRTC CALL INITIALIZATION ---
+        // ==========================================
+        // WEBRTC & MEDIA LOGIC
+        // ==========================================
         async function startWebRTCCall() {
             peerConnection = new RTCPeerConnection(rtcConfig);
 
@@ -428,25 +347,22 @@
 
             peerConnection.ontrack = event => {
                 document.getElementById("remote-video").srcObject = event.streams[0];
+                
+                // Visual feedback that call is active
+                const btn = document.getElementById('btn-call');
+                btn.innerText = "Call Active";
+                btn.classList.replace("bg-temi-orange", "bg-green-600");
+                btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-green-700");
             };
 
             try {
                 const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                globalLocalStream = localStream;
+                globalLocalStream = localStream; 
                 document.getElementById("local-video").srcObject = localStream;
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-                
-                // Visual feedback on the button
-                const btn = document.querySelector('button[onclick="startWebRTCCall()"]');
-                btn.innerText = "Call Active";
-                btn.classList.replace("bg-temi-orange", "bg-gray-600");
-                btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-gray-500");
-                btn.disabled = true;
-                btn.style.cursor = "default";
-
             } catch (e) {
-                console.warn("Camera/Mic not accessible.", e);
-                alert("Please allow camera access.");
+                console.warn("Camera/Mic not accessible on this PC/Phone.", e);
+                alert("Please allow camera access to send your video to the robot and see yourself on screen.");
             }
 
             const offer = await peerConnection.createOffer();
@@ -454,23 +370,18 @@
             publishData("temi/webrtc/offer", { type: offer.type, sdp: offer.sdp });
         }
 
-        // --- MEDIA CONTROLS ---
-        let isMuted = false;
-        let isVideoStopped = false;
-
         function toggleMute() {
             if(!globalLocalStream) return;
             isMuted = !isMuted;
             globalLocalStream.getAudioTracks()[0].enabled = !isMuted;
             const btn = document.getElementById('btn-mute');
             btn.innerText = isMuted ? "Unmute Mic" : "Mute Mic";
-            
             if(isMuted) {
-                btn.classList.replace("bg-gray-600", "bg-temi-orange");
-                btn.classList.replace("hover:bg-gray-500", "hover:bg-temi-orange-hover");
+                btn.classList.replace("bg-temi-button", "bg-red-600");
+                btn.classList.replace("hover:bg-temi-button-hover", "hover:bg-red-700");
             } else {
-                btn.classList.replace("bg-temi-orange", "bg-gray-600");
-                btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-gray-500");
+                btn.classList.replace("bg-red-600", "bg-temi-button");
+                btn.classList.replace("hover:bg-red-700", "hover:bg-temi-button-hover");
             }
         }
 
@@ -480,17 +391,18 @@
             globalLocalStream.getVideoTracks()[0].enabled = !isVideoStopped;
             const btn = document.getElementById('btn-video');
             btn.innerText = isVideoStopped ? "Enable Video" : "Disable Video";
-            
             if(isVideoStopped) {
-                btn.classList.replace("bg-gray-600", "bg-temi-orange");
-                btn.classList.replace("hover:bg-gray-500", "hover:bg-temi-orange-hover");
+                btn.classList.replace("bg-temi-button", "bg-red-600");
+                btn.classList.replace("hover:bg-temi-button-hover", "hover:bg-red-700");
             } else {
-                btn.classList.replace("bg-temi-orange", "bg-gray-600");
-                btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-gray-500");
+                btn.classList.replace("bg-red-600", "bg-temi-button");
+                btn.classList.replace("hover:bg-red-700", "hover:bg-temi-button-hover");
             }
         }
 
-        // --- ROBOT CONTROLS ---
+        // ==========================================
+        // ROBOT CONTROL LOGIC
+        // ==========================================
         function sendGoTo(destinationName) {
             publishData("temi/commands", { action: "goto", destination: destinationName });
         }
@@ -525,6 +437,7 @@
             publishData("temi/joystick", { speed: 0.0, rotation: 0.0 });
         }
 
+        // KEYBOARD CONTROLS
         const activeKeys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 
         function updateJoystickFromKeys() {
