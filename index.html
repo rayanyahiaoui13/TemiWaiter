@@ -85,23 +85,23 @@
             </div>
 
             <!-- Manual Teleoperation -->
-            <div class="bg-temi-panel p-5 rounded-xl shadow-xl">
+                        <div class="bg-temi-panel p-5 rounded-xl shadow-xl">
                 <h3 class="text-lg font-semibold text-gray-200 mb-1">Manual Teleoperation</h3>
                 <p class="text-xs text-gray-400 mb-4">Use keyboard arrows or D-Pad to drive.</p>
                 
                 <!-- Improved D-Pad Layout -->
-                <div class="grid grid-cols-3 grid-rows-3 gap-2 w-48 mx-auto">
+                <div class="grid grid-cols-3 grid-rows-2 gap-1 w-40 mx-auto">
                     <div class="col-start-2 row-start-1">
-                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-xl" onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(1.0, 0.0)" ontouchend="stopJoy()">▲</button>
+                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-2xl font-bold" onmousedown="startJoy(1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(1.0, 0.0)" ontouchend="stopJoy()">↑</button>
                     </div>
                     <div class="col-start-1 row-start-2">
-                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-xl" onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, 0.5)" ontouchend="stopJoy()">◀</button>
+                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-2xl font-bold" onmousedown="startJoy(0.0, 0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, 0.5)" ontouchend="stopJoy()">←</button>
                     </div>
                     <div class="col-start-2 row-start-2">
-                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-xl" onmousedown="startJoy(-1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(-1.0, 0.0)" ontouchend="stopJoy()">▼</button>
+                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-2xl font-bold" onmousedown="startJoy(-1.0, 0.0)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(-1.0, 0.0)" ontouchend="stopJoy()">↓</button>
                     </div>
                     <div class="col-start-3 row-start-2">
-                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-xl" onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, -0.5)" ontouchend="stopJoy()">▶</button>
+                        <button class="w-full h-12 bg-temi-button hover:bg-gray-500 text-white rounded shadow-md transition-colors select-none touch-manipulation flex items-center justify-center text-2xl font-bold" onmousedown="startJoy(0.0, -0.5)" onmouseup="stopJoy()" onmouseleave="stopJoy()" ontouchstart="startJoy(0.0, -0.5)" ontouchend="stopJoy()">→</button>
                     </div>
                 </div>
             </div>
