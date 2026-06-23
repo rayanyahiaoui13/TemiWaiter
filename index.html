@@ -301,36 +301,67 @@
         // WEBRTC & MEDIA LOGIC
         // ==========================================
         async function startWebRTCCall() {
-            peerConnection = new RTCPeerConnection(rtcConfig);
+    peerConnection = new RTCPeerConnection(rtcConfig);
 
-            peerConnection.onicecandidate = event => {
-                if (event.candidate) publishData("temi/webrtc/candidate/pc", event.candidate);
-            };
+    peerConnection.onicecandidate = event => {
+        if (event.candidate) publishData("temi/webrtc/candidate/pc", event.candidate);
+    };
 
-            peerConnection.ontrack = event => {
-                document.getElementById("remote-video").srcObject = event.streams[0];
-                
-                // Visual feedback that call is active
-                const btn = document.getElementById('btn-call');
-                btn.innerText = "Call Active";
-                btn.classList.replace("bg-temi-orange", "bg-green-600");
-                btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-green-700");
-            };
+    peerConnection.ontrack = event => {
+        document.getElementById("remote-video").srcObject = event.streams[0];
+        
+        // Visual feedback that call is active
+        const btn = document.getElementById('btn-call');
+        btn.innerText = "Call Active";
+        btn.classList.replace("bg-temi-orange", "bg-green-600");
+        btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-green-700");
+    };
 
-            try {
-                const localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                globalLocalStream = localStream; 
-                document.getElementById("local-video").srcObject = localStream;
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-            } catch (e) {
-                console.warn("Camera/Mic not accessible on this PC/Phone.", e);
-                alert("Please allow camera access to send your video to the robot and see yourself on screen.");
+    try {
+        // 1. Optimisation drastique de la capture vidéo et audio de l'opérateur
+        const constraints = {
+            video: {
+                width: { ideal: 640 },
+                height: { ideal: 360 },
+                frameRate: { ideal: 15, max: 24 } // 15 FPS est suffisant pour voir un visage
+            },
+            audio: {
+                echoCancellation: true, // À remettre sur "true" s'il y a trop d'écho dans le restaurant
+                noiseSuppression: true,
+                autoGainControl: true
             }
+        };
 
-            const offer = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offer);
-            publishData("temi/webrtc/offer", { type: offer.type, sdp: offer.sdp });
-        }
+        const localStream = await navigator.mediaDevices.getUserMedia(constraints);
+        globalLocalStream = localStream; 
+        document.getElementById("local-video").srcObject = localStream;
+        
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        // 2. Forcer l'utilisation du codec H264 (Accélération matérielle Android)
+        const transceivers = peerConnection.getTransceivers();
+        transceivers.forEach(transceiver => {
+            if (transceiver.sender && transceiver.sender.track && transceiver.sender.track.kind === 'video') {
+                const capabilities = RTCRtpSender.getCapabilities('video');
+                if (capabilities && capabilities.codecs) {
+                    // On filtre pour ne garder que le H264 en priorité
+                    const h264Codecs = capabilities.codecs.filter(c => c.mimeType.toLowerCase() === 'video/h264');
+                    if (h264Codecs.length > 0) {
+                        transceiver.setCodecPreferences(h264Codecs);
+                    }
+                }
+            }
+        });
+
+    } catch (e) {
+        console.warn("Camera/Mic not accessible on this PC/Phone.", e);
+        alert("Please allow camera access to send your video to the robot and see yourself on screen.");
+    }
+
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    publishData("temi/webrtc/offer", { type: offer.type, sdp: offer.sdp });
+}
 
         function toggleMute() {
             if(!globalLocalStream) return;
