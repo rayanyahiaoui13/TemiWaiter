@@ -435,7 +435,6 @@
             }
         }
 
-        // 👇 ET VOICI LA FONCTION POUR LE BOUTON AUTO-TRACK 👇
         function toggleFaceTracking() {
             isFaceTrackingEnabled = !isFaceTrackingEnabled;
             
@@ -445,11 +444,11 @@
             // Visual update
             const btn = document.getElementById('btn-facetrack');
             if (isFaceTrackingEnabled) {
-                btn.innerText = "Follow Me: ON"; // <-- Texte modifié
+                btn.innerText = "Follow Me: ON"; 
                 btn.classList.remove("bg-temi-button", "hover:bg-gray-500");
                 btn.classList.add("bg-green-600", "hover:bg-green-700");
             } else {
-                btn.innerText = "Follow Me: OFF"; // <-- Texte modifié
+                btn.innerText = "Follow Me: OFF"; 
                 btn.classList.remove("bg-green-600", "hover:bg-green-700");
                 btn.classList.add("bg-temi-button", "hover:bg-gray-500");
                 
