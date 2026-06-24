@@ -135,7 +135,6 @@
     </div>
 
     <script>
-
         // Remote HiveMQ cluster address to route data between dashboard and robot
         const BROKER = "0cb6b7de17494a0b8d1fbb40718195cd.s1.eu.hivemq.cloud"; 
         // WSS (Secure WebSocket) port required for browser-based MQTT clients
@@ -146,7 +145,6 @@
         // Instantiate the Paho MQTT client object
         const mqtt = new Paho.MQTT.Client(BROKER, PORT, CLIENT_ID);
         
-
         // Stores the active WebRTC instance handling the video/audio streams
         let peerConnection = null;
         // Holds the raw media tracks from the operator's local webcam/microphone
@@ -154,6 +152,9 @@
         // Trackers to toggle media states without destroying the WebRTC connection
         let isMuted = false;
         let isVideoStopped = false;
+        
+        // 👇 ET VOICI LA VARIABLE POUR LE FACE TRACKING 👇
+        let isFaceTrackingEnabled = false;
 
         // Reference prices for cart logic
         const menuPrices = {
@@ -217,7 +218,6 @@
             li.className = `${colorClass} ${bold ? 'font-bold' : ''}`;
             if(list) list.prepend(li);
         }
-
 
         // Callback triggered automatically if the connection to HiveMQ is severed
         mqtt.onConnectionLost = function (responseObj) {
@@ -421,7 +421,6 @@
             }
         }
 
-
         // Send a specific predefined location string to trigger autonomous mapping
         function sendGoTo(destinationName) {
             publishData("temi/commands", { action: "goto", destination: destinationName });
@@ -433,6 +432,30 @@
                 let msg = new Paho.MQTT.Message(mode);
                 msg.destinationName = "temi/mode";
                 mqtt.send(msg);
+            }
+        }
+
+        // 👇 ET VOICI LA FONCTION POUR LE BOUTON AUTO-TRACK 👇
+        function toggleFaceTracking() {
+            isFaceTrackingEnabled = !isFaceTrackingEnabled;
+            
+            // Send the command via MQTT
+            publishData("temi/commands", { faceTracking: isFaceTrackingEnabled });
+
+            // Visual update
+            const btn = document.getElementById('btn-facetrack');
+            if (isFaceTrackingEnabled) {
+                btn.innerText = "🤖 Auto-Track: ON";
+                btn.classList.remove("bg-temi-button", "hover:bg-gray-500");
+                btn.classList.add("bg-green-600", "hover:bg-green-700");
+            } else {
+                btn.innerText = "🤖 Auto-Track: OFF";
+                btn.classList.remove("bg-green-600", "hover:bg-green-700");
+                btn.classList.add("bg-temi-button", "hover:bg-gray-500");
+                
+                // Reset screen tilt
+                setTiltAngle(0);
+                document.querySelector('input[type="range"]').value = 0;
             }
         }
 
