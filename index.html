@@ -90,7 +90,7 @@
 
                 <div class="border-t border-gray-600 pt-4">
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-sm font-semibold text-gray-300">📷 Camera Tilt</span>
+                        <span class="text-sm font-semibold text-gray-300">Camera Tilt</span>
                         <span id="tilt-value" class="text-xs font-mono text-temi-orange bg-gray-800 px-2 py-1 rounded">0°</span>
                     </div>
                     <div class="flex items-center gap-3">
@@ -124,7 +124,7 @@
 
                     <div class="bg-temi-bg p-3 rounded-lg border border-gray-700 flex flex-col flex-grow">
                         <div class="bg-gray-800 p-2 rounded text-center mb-3 border border-gray-600">
-                            <span class="text-gray-400 text-sm">👁️ Client is currently viewing: </span>
+                            <span class="text-gray-400 text-sm">Client is currently viewing: </span>
                             <span id="client-current-page" class="text-temi-orange font-bold">Home (Camera View)</span>
                         </div>
                         
@@ -211,7 +211,6 @@
             sb.innerText = "🔴 MQTT CONNECTION LOST";
         };
 
-        // 👇 LA FONCTION DE RÉCEPTION SÉCURISÉE (Anti-crash) 👇
         mqtt.onMessageArrived = function (message) {
             try {
                 const payload = JSON.parse(message.payloadString);
@@ -230,7 +229,7 @@
                         if (pageLabel) pageLabel.innerText = payload.page;
                         
                         // Ajout dans l'activity log pour l'historique
-                        addLog(`👉 Client opened: ${payload.page}`, "text-blue-400");
+                        addLog(`Client opened: ${payload.page}`, "text-blue-400");
                     }
                     else if (payload.type === "order_validation") {
                         let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
@@ -258,11 +257,11 @@
                         new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(e => {});
                         
                         const itemCount = payload.items ? payload.items.length : 0;
-                        addLog(`✅ ORDER VALIDATED: ${itemCount} items (Total: RM${safeTotal})`, "text-green-500", true);
+                        addLog(`ORDER VALIDATED: ${itemCount} items (Total: RM${safeTotal})`, "text-green-500", true);
                         clearLiveCart();
                     } 
                     else if (payload.type === "clear_cart") {
-                        addLog("🗑️ Customer cleared the cart", "text-red-400");
+                        addLog("Customer cleared the cart", "text-red-400");
                         clearLiveCart();
                     }
                     else if (payload.request) {
