@@ -245,10 +245,13 @@
             // Payload containing customer menu interactions and cart validations
             else if (message.destinationName === "temi/menu") {
                 
-                // Triggers when the customer finalizes the order on the Temi screen
-                if (payload.type === "order_validation") {
-                    
-                    // Generate a downloadable CSV receipt dynamically on the client side
+                if (payload.type === "page_view") {
+                    // Met à jour le petit badge en haut
+                    document.getElementById("client-current-page").innerText = payload.page;
+                    // NOUVEAU : Ajoute la page visitée dans l'Activity Log !
+                    addLog(` Client opened: ${payload.page}`, "text-blue-400");
+                }
+                else if (payload.type === "order_validation") {
                     let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
                     csvContent += "Date_Time;Item;Price_RM\n"; 
 
@@ -257,7 +260,6 @@
                     });
                     csvContent += `;;TOTAL : ${payload.total.toFixed(2)}\n`;
 
-                    // Encode and trigger the automatic download of the CSV file
                     let encodedUri = encodeURI(csvContent);
                     let link = document.createElement("a");
                     link.setAttribute("href", encodedUri);
@@ -267,16 +269,16 @@
                     link.click();
                     document.body.removeChild(link);
 
-                    // Play a short audible beep to notify the operator/kitchen
                     new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(e => {});
                     
-                    // Log the success in the UI and flush the current session's cart
-                    addLog(`ORDER VALIDATED: ${payload.items.length} items (Total: RM${payload.total.toFixed(2)})`, "text-green-500", true);
+                    addLog(` ORDER VALIDATED: ${payload.items.length} items (Total: RM${payload.total.toFixed(2)})`, "text-green-500", true);
                     clearLiveCart();
                 } 
-                // Triggers when a customer adds a single item to the cart
+                else if (payload.type === "clear_cart") {
+                    addLog(" Customer cleared the cart", "text-red-400");
+                    clearLiveCart();
+                }
                 else if (payload.request) {
-                    addLog(`+ ${payload.request}`, "text-yellow-500");
                     liveCart.push(payload.request);
                     updateLiveCartUI();
                 }
