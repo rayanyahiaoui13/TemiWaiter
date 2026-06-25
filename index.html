@@ -103,7 +103,7 @@
                 </div>
 
                 <button id="btn-facetrack" onclick="toggleFaceTracking()" class="w-full bg-temi-button hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow transition-colors text-center mt-4">
-                    Auto-Track: OFF
+                    Follow Me: OFF
                 </button>
             </div>
 
@@ -123,6 +123,11 @@
                     </div>
 
                     <div class="bg-temi-bg p-3 rounded-lg border border-gray-700 flex flex-col flex-grow">
+                        <div class="bg-gray-800 p-2 rounded text-center mb-3 border border-gray-600">
+                            <span class="text-gray-400 text-sm">👁️ Client is currently viewing: </span>
+                            <span id="client-current-page" class="text-temi-orange font-bold">Home (Camera View)</span>
+                        </div>
+                        
                         <h4 class="text-temi-orange text-sm font-semibold mb-2">Activity Log</h4>
                         <ul id="menu-notifications" class="text-sm text-gray-300 min-h-[4rem] max-h-32 overflow-y-auto no-scrollbar space-y-1">
                             <li class="text-gray-500 italic">Waiting for actions...</li>
@@ -135,52 +140,35 @@
     </div>
 
     <script>
-        // Remote HiveMQ cluster address to route data between dashboard and robot
         const BROKER = "0cb6b7de17494a0b8d1fbb40718195cd.s1.eu.hivemq.cloud"; 
-        // WSS (Secure WebSocket) port required for browser-based MQTT clients
         const PORT = 8884; 
-        // Generates a random client ID to prevent connection drops from duplicates
         const CLIENT_ID = "DashboardWebRTC_" + Math.random().toString(16).substr(2, 8);
         
-        // Instantiate the Paho MQTT client object
         const mqtt = new Paho.MQTT.Client(BROKER, PORT, CLIENT_ID);
         
-        // Stores the active WebRTC instance handling the video/audio streams
         let peerConnection = null;
-        // Holds the raw media tracks from the operator's local webcam/microphone
         let globalLocalStream = null; 
-        // Trackers to toggle media states without destroying the WebRTC connection
         let isMuted = false;
         let isVideoStopped = false;
-        
-        // 👇 ET VOICI LA VARIABLE POUR LE FACE TRACKING 👇
         let isFaceTrackingEnabled = false;
 
-        // Reference prices for cart logic
         const menuPrices = {
             "Caesar Salad": 8.50, "Garlic Bread": 5.00,
             "Temi Burger": 15.00, "Grilled Salmon": 18.00,
             "Choco Fondant": 6.50, "Cheesecake": 7.00,
             "Coca-Cola": 3.50, "Water Bottle": 2.00
         };
-        // Array storing current order items synced from the robot
         let liveCart = [];
 
-        // STUN server configuration to discover public IP addresses for P2P connection
         const rtcConfig = { 
-            iceServers: [
-                { urls: 'stun:stun.l.google.com:19302' }
-            ] 
+            iceServers: [ { urls: 'stun:stun.l.google.com:19302' } ] 
         };
 
-        // angle value selected by operator
         function setTiltAngle(angle) {
             publishData("temi/commands", { tiltAngle: parseInt(angle) });
-            // text for angle value
             document.getElementById("tilt-value").innerText = angle + "°";
         }
 
-        // renders the shopping cart DOM elements when items are added or cleared
         function updateLiveCartUI() {
             const list = document.getElementById("live-cart-list");
             const totalEl = document.getElementById("live-cart-total");
@@ -203,13 +191,11 @@
             totalEl.innerText = `Total: RM${total.toFixed(2)}`;
         }
 
-        // Resets the virtual cart array and clears the visual UI
         function clearLiveCart() {
             liveCart = [];
             updateLiveCartUI();
         }
 
-        // Injects a new notification entry at the top of the Activity Log window
         function addLog(text, colorClass = "text-yellow-500", bold = false) {
             const list = document.getElementById("menu-notifications");
             if(list && list.innerHTML.includes("Waiting")) list.innerHTML = "";
@@ -219,84 +205,87 @@
             if(list) list.prepend(li);
         }
 
-        // Callback triggered automatically if the connection to HiveMQ is severed
         mqtt.onConnectionLost = function (responseObj) {
             const sb = document.getElementById("status-bar");
             sb.classList.replace("bg-green-600", "bg-red-600");
             sb.innerText = "🔴 MQTT CONNECTION LOST";
         };
 
-        // Core listener that processes all incoming MQTT messages from the robot
+        // 👇 LA FONCTION DE RÉCEPTION SÉCURISÉE (Anti-crash) 👇
         mqtt.onMessageArrived = function (message) {
-            const payload = JSON.parse(message.payloadString);
-            
-            // Apply the WebRTC Answer SDP generated by the robot's Android app
-            if (message.destinationName === "temi/webrtc/answer") {
-                peerConnection.setRemoteDescription(new RTCSessionDescription(payload));
-            } 
-            // Add ICE networking candidates sent by the robot to establish the video link
-            else if (message.destinationName === "temi/webrtc/candidate/robot") {
-                peerConnection.addIceCandidate(new RTCIceCandidate(payload));
-            } 
-            // Generic status updates (navigation progress) from the Temi SDK
-            else if (message.destinationName === "temi/status") {
-                console.log("Status update received");
-            } 
-            // Payload containing customer menu interactions and cart validations
-            else if (message.destinationName === "temi/menu") {
+            try {
+                const payload = JSON.parse(message.payloadString);
                 
-                if (payload.type === "page_view") {
-                    // Met à jour le petit badge en haut
-                    document.getElementById("client-current-page").innerText = payload.page;
-                    // NOUVEAU : Ajoute la page visitée dans l'Activity Log !
-                    addLog(` Client opened: ${payload.page}`, "text-blue-400");
-                }
-                else if (payload.type === "order_validation") {
-                    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-                    csvContent += "Date_Time;Item;Price_RM\n"; 
-
-                    payload.items.forEach(function(item) {
-                        csvContent += `${payload.timestamp};${item.name};${item.price.toFixed(2)}\n`;
-                    });
-                    csvContent += `;;TOTAL : ${payload.total.toFixed(2)}\n`;
-
-                    let encodedUri = encodeURI(csvContent);
-                    let link = document.createElement("a");
-                    link.setAttribute("href", encodedUri);
-                    let safeFileName = payload.timestamp.replace(/[: ]/g, "_");
-                    link.setAttribute("download", `Temi_Order_${safeFileName}.csv`);
-                    document.body.appendChild(link); 
-                    link.click();
-                    document.body.removeChild(link);
-
-                    new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(e => {});
-                    
-                    addLog(` ORDER VALIDATED: ${payload.items.length} items (Total: RM${payload.total.toFixed(2)})`, "text-green-500", true);
-                    clearLiveCart();
+                if (message.destinationName === "temi/webrtc/answer") {
+                    peerConnection.setRemoteDescription(new RTCSessionDescription(payload));
                 } 
-                else if (payload.type === "clear_cart") {
-                    addLog(" Customer cleared the cart", "text-red-400");
-                    clearLiveCart();
+                else if (message.destinationName === "temi/webrtc/candidate/robot") {
+                    peerConnection.addIceCandidate(new RTCIceCandidate(payload));
+                } 
+                // Réception des actions du client
+                else if (message.destinationName === "temi/menu") {
+                    
+                    if (payload.type === "page_view") {
+                        const pageLabel = document.getElementById("client-current-page");
+                        if (pageLabel) pageLabel.innerText = payload.page;
+                        
+                        // Ajout dans l'activity log pour l'historique
+                        addLog(`👉 Client opened: ${payload.page}`, "text-blue-400");
+                    }
+                    else if (payload.type === "order_validation") {
+                        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                        csvContent += "Date_Time;Item;Price_RM\n"; 
+
+                        // Sécurité: vérifier que items existe bien avant de faire un forEach
+                        if (payload.items && Array.isArray(payload.items)) {
+                            payload.items.forEach(function(item) {
+                                csvContent += `${payload.timestamp};${item.name};${item.price.toFixed(2)}\n`;
+                            });
+                        }
+                        
+                        const safeTotal = payload.total ? payload.total.toFixed(2) : "0.00";
+                        csvContent += `;;TOTAL : ${safeTotal}\n`;
+
+                        let encodedUri = encodeURI(csvContent);
+                        let link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        let safeFileName = payload.timestamp ? payload.timestamp.replace(/[: ]/g, "_") : "Order";
+                        link.setAttribute("download", `Temi_Order_${safeFileName}.csv`);
+                        document.body.appendChild(link); 
+                        link.click();
+                        document.body.removeChild(link);
+
+                        new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play().catch(e => {});
+                        
+                        const itemCount = payload.items ? payload.items.length : 0;
+                        addLog(`✅ ORDER VALIDATED: ${itemCount} items (Total: RM${safeTotal})`, "text-green-500", true);
+                        clearLiveCart();
+                    } 
+                    else if (payload.type === "clear_cart") {
+                        addLog("🗑️ Customer cleared the cart", "text-red-400");
+                        clearLiveCart();
+                    }
+                    else if (payload.request) {
+                        // Uniquement ajout au panier (silencieux dans le log !)
+                        liveCart.push(payload.request);
+                        updateLiveCartUI();
+                    }
                 }
-                else if (payload.request) {
-                    liveCart.push(payload.request);
-                    updateLiveCartUI();
-                }
+            } catch (error) {
+                // S'il y a une erreur Javascript, le tableau de bord ne plantera plus !
+                console.error("MQTT Parsing Error: ", error, message.payloadString);
             }
         };
 
-        // Initialize connection to the HiveMQ broker with provided credentials
         mqtt.connect({
             userName: "temi_admin",          
             password: "TestTemi1",     
             useSSL: true,                    
             onSuccess: function () { 
-                // Update UI to reflect a successful connection state
                 const sb = document.getElementById("status-bar");
                 sb.classList.replace("bg-red-600", "bg-green-600");
                 sb.innerText = "🟢 ONLINE (CLOUD) - Ready for video";
                 
-                // Subscribe to necessary topics to listen for robot responses
                 mqtt.subscribe("temi/webrtc/answer");
                 mqtt.subscribe("temi/webrtc/candidate/robot");
                 mqtt.subscribe("temi/status");
@@ -304,14 +293,12 @@
                 publishMode('MANUEL'); 
             },
             onFailure: function (message) {
-                // Log and display broker connection failures
                 const sb = document.getElementById("status-bar");
                 sb.classList.replace("bg-green-600", "bg-red-600");
                 sb.innerText = "🔴 CLOUD CONNECTION FAILED: " + message.errorMessage;
             }
         });
 
-        // Helper function to stringify JSON and push it over MQTT with zero latency (QoS 0)
         function publishData(topic, payloadObj) {
             if (mqtt.isConnected()) {
                 let message = new Paho.MQTT.Message(JSON.stringify(payloadObj));
@@ -321,20 +308,15 @@
             }
         }
 
-        // Core asynchronous function to bootstrap the WebRTC connection
         async function startWebRTCCall() {
             peerConnection = new RTCPeerConnection(rtcConfig);
 
-            // Forward local networking routing paths (ICE) to the robot via MQTT
             peerConnection.onicecandidate = event => {
                 if (event.candidate) publishData("temi/webrtc/candidate/pc", event.candidate);
             };
 
-            // Bind the incoming video/audio track from the robot to the HTML <video> tag
             peerConnection.ontrack = event => {
                 document.getElementById("remote-video").srcObject = event.streams[0];
-                
-                // Visual feedback updating the call button UI
                 const btn = document.getElementById('btn-call');
                 btn.innerText = "Call Active";
                 btn.classList.replace("bg-temi-orange", "bg-green-600");
@@ -342,56 +324,38 @@
             };
 
             try {
-                // Highly optimized local media constraints to save upload bandwidth
                 const constraints = {
-                    video: {
-                        width: { ideal: 640 },
-                        height: { ideal: 360 },
-                        frameRate: { ideal: 15, max: 24 } 
-                    },
-                    audio: {
-                        echoCancellation: true, // Crucial to prevent audio feedback loops
-                        noiseSuppression: true,
-                        autoGainControl: true
-                    }
+                    video: { width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: 15, max: 24 } },
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
                 };
 
-                // Request camera and microphone access from the browser
                 const localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 globalLocalStream = localStream; 
                 document.getElementById("local-video").srcObject = localStream;
                 
-                // Inject the local media tracks into the WebRTC peer connection
                 localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
-                // Scan capabilities to explicitly prioritize the H264 hardware codec
                 const transceivers = peerConnection.getTransceivers();
                 transceivers.forEach(transceiver => {
                     if (transceiver.sender && transceiver.sender.track && transceiver.sender.track.kind === 'video') {
                         const capabilities = RTCRtpSender.getCapabilities('video');
                         if (capabilities && capabilities.codecs) {
-                            // Filter out VP8/VP9 to force hardware acceleration on the Temi side
                             const h264Codecs = capabilities.codecs.filter(c => c.mimeType.toLowerCase() === 'video/h264');
-                            if (h264Codecs.length > 0) {
-                                transceiver.setCodecPreferences(h264Codecs);
-                            }
+                            if (h264Codecs.length > 0) transceiver.setCodecPreferences(h264Codecs);
                         }
                     }
                 });
 
             } catch (e) {
-                // Handle cases where the operator lacks hardware or denied permissions
                 console.warn("Camera/Mic not accessible on this PC/Phone.", e);
                 alert("Please allow camera access to send your video to the robot and see yourself on screen.");
             }
 
-            // Generate the local SDP offer and send it to the Android app for negotiation
             const offer = await peerConnection.createOffer();
             await peerConnection.setLocalDescription(offer);
             publishData("temi/webrtc/offer", { type: offer.type, sdp: offer.sdp });
         }
 
-        // Disables the local audio track to temporarily mute the operator
         function toggleMute() {
             if(!globalLocalStream) return;
             isMuted = !isMuted;
@@ -407,7 +371,6 @@
             }
         }
 
-        // Disables the local video track (turns the PIP screen black)
         function toggleVideo() {
             if(!globalLocalStream) return;
             isVideoStopped = !isVideoStopped;
@@ -423,12 +386,10 @@
             }
         }
 
-        // Send a specific predefined location string to trigger autonomous mapping
         function sendGoTo(destinationName) {
             publishData("temi/commands", { action: "goto", destination: destinationName });
         }
 
-        // Toggle the internal state flag of the Android app (AUTO vs MANUAL)
         function publishMode(mode) {
             if (mqtt.isConnected()) {
                 let msg = new Paho.MQTT.Message(mode);
@@ -439,11 +400,8 @@
 
         function toggleFaceTracking() {
             isFaceTrackingEnabled = !isFaceTrackingEnabled;
-            
-            // Send the command via MQTT
             publishData("temi/commands", { faceTracking: isFaceTrackingEnabled });
 
-            // Visual update
             const btn = document.getElementById('btn-facetrack');
             if (isFaceTrackingEnabled) {
                 btn.innerText = "Follow Me: ON"; 
@@ -454,31 +412,26 @@
                 btn.classList.remove("bg-green-600", "hover:bg-green-700");
                 btn.classList.add("bg-temi-button", "hover:bg-gray-500");
                 
-                // Reset screen tilt
                 setTiltAngle(0);
                 document.querySelector('input[type="range"]').value = 0;
             }
         }
 
-        // Variables managing the continuous MQTT transmission loop for arrow control
         let movementLoop = null;
         let currentSpeed = 0.0;
         let currentRotation = 0.0;
 
-        // Triggers the drive sequence when a D-Pad button or keyboard key is pressed
         function startJoy(speed, rotation) {
             currentSpeed = speed;
             currentRotation = rotation;
             publishData("temi/joystick", { speed: currentSpeed, rotation: currentRotation });
             
-            // Re-broadcasts the speed instructions every 100ms to keep the robot moving
             if (movementLoop) clearInterval(movementLoop);
             movementLoop = setInterval(() => { 
                 publishData("temi/joystick", { speed: currentSpeed, rotation: currentRotation }); 
             }, 100); 
         }
 
-        // Interrupts the interval loop and sends a hard-stop zero-velocity command
         function stopJoy() {
             if (movementLoop) { clearInterval(movementLoop); movementLoop = null; }
             currentSpeed = 0.0;
@@ -486,11 +439,8 @@
             publishData("temi/joystick", { speed: 0.0, rotation: 0.0 });
         }
 
-        // KEYBOARD CONTROLS
-        // State dictionary maintaining which directional keys are actively held down
         const activeKeys = { ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
 
-        // Translates keyboard states into specific forward/backward or rotational floats
         function updateJoystickFromKeys() {
             let s = 0.0;
             let r = 0.0;
@@ -500,7 +450,6 @@
             if (activeKeys["ArrowLeft"]) r = 0.5;
             if (activeKeys["ArrowRight"]) r = -0.5;
 
-            // If no keys are actively pressed, halt the robot immediately
             if (s === 0.0 && r === 0.0) {
                 stopJoy();
             } else {
@@ -508,7 +457,6 @@
             }
         }
 
-        // Listen for key presses globally to bind PC keyboard arrows to movement
         document.addEventListener("keydown", (event) => {
             if (activeKeys.hasOwnProperty(event.key)) {
                 event.preventDefault(); 
@@ -519,7 +467,6 @@
             }
         });
 
-        // Listen for key releases to stop applying velocity to the corresponding axis
         document.addEventListener("keyup", (event) => {
             if (activeKeys.hasOwnProperty(event.key)) {
                 event.preventDefault();
