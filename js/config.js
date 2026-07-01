@@ -23,8 +23,6 @@ export const MENU_PRICES = {
   "Water Bottle": 2.0,
 };
 
-// Topics are now built dynamically per Robot ID (serial number),
-// matching the Kotlin side which subscribes/publishes on "$ROBOT_ID/..."
 export function buildTopics(robotId) {
   return {
     WEBRTC_ANSWER: `${robotId}/webrtc/answer`,
