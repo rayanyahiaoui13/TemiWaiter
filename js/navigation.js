@@ -1,6 +1,5 @@
 // js/navigation.js
 
-import { TOPICS } from "./config.js";
 import { state } from "./state.js";
 import { publishData, publishRaw } from "./mqtt.js";
 import {
@@ -10,24 +9,31 @@ import {
 } from "./ui.js";
 
 export function sendGoTo(destinationName) {
-  publishData(TOPICS.COMMANDS, {
+  if (!state.topics) return;
+  publishData(state.topics.COMMANDS, {
     action: "goto",
     destination: destinationName,
   });
 }
 
 export function publishMode(mode) {
-  publishRaw(TOPICS.MODE, mode);
+  if (!state.topics) return;
+  publishRaw(state.topics.MODE, mode);
 }
 
 export function setTiltAngle(angle) {
-  publishData(TOPICS.COMMANDS, { tiltAngle: parseInt(angle, 10) });
+  if (!state.topics) return;
+  publishData(state.topics.COMMANDS, { tiltAngle: parseInt(angle, 10) });
   setTiltDisplay(angle);
 }
 
 export function toggleFaceTracking() {
   state.isFaceTrackingEnabled = !state.isFaceTrackingEnabled;
-  publishData(TOPICS.COMMANDS, { faceTracking: state.isFaceTrackingEnabled });
+  if (state.topics) {
+    publishData(state.topics.COMMANDS, {
+      faceTracking: state.isFaceTrackingEnabled,
+    });
+  }
   setFaceTrackButtonState(state.isFaceTrackingEnabled);
 
   if (!state.isFaceTrackingEnabled) {

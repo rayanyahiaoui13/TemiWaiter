@@ -15,4 +15,12 @@ export const state = {
     ArrowLeft: false,
     ArrowRight: false,
   },
+
+  // Multi-robot support
+  currentRobotId: null,
+  topics: null,
+
+  // Battery
+  batteryLevel: null,
+  isCharging: false,
 };

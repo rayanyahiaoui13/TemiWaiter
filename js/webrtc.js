@@ -1,5 +1,5 @@
 //
-import { RTC_CONFIG, TOPICS } from "./config.js";
+import { RTC_CONFIG } from "./config.js";
 import { state } from "./state.js";
 import {
   setCallButtonActive,
@@ -34,11 +34,16 @@ function preferH264(peerConnection) {
 }
 
 export async function startWebRTCCall() {
+  if (!state.topics) {
+    alert("Please select a robot before starting a call.");
+    return;
+  }
+
   state.peerConnection = new RTCPeerConnection(RTC_CONFIG);
 
   state.peerConnection.onicecandidate = (event) => {
     if (event.candidate)
-      publishData(TOPICS.WEBRTC_CANDIDATE_PC, event.candidate);
+      publishData(state.topics.WEBRTC_CANDIDATE_PC, event.candidate);
   };
 
   state.peerConnection.ontrack = (event) => {
@@ -64,7 +69,7 @@ export async function startWebRTCCall() {
 
   const offer = await state.peerConnection.createOffer();
   await state.peerConnection.setLocalDescription(offer);
-  publishData(TOPICS.WEBRTC_OFFER, { type: offer.type, sdp: offer.sdp });
+  publishData(state.topics.WEBRTC_OFFER, { type: offer.type, sdp: offer.sdp });
 }
 
 export function toggleMute() {

@@ -1,8 +1,14 @@
-import { initMqtt } from "./mqtt.js";
+import { initMqtt, selectRobot } from "./mqtt.js";
 import { startWebRTCCall, toggleMute, toggleVideo } from "./webrtc.js";
 import { sendGoTo, setTiltAngle, toggleFaceTracking } from "./navigation.js";
 import { startJoy, stopJoy, initKeyboardControls } from "./teleop.js";
 import { clearLiveCart } from "./cart.js";
+import { addRobotOption, getSelectedRobotId } from "./ui.js";
+
+// Known robots at startup. Add serial numbers here, or add them live via the input field.
+const KNOWN_ROBOTS = [
+  // "12345678901234", // example Temi serial number
+];
 
 function bindControlCenter() {
   document
@@ -53,12 +59,43 @@ function bindCart() {
     .addEventListener("click", clearLiveCart);
 }
 
+// Binds the robot selector dropdown and the "add robot" input field
+function bindRobotSelector() {
+  const select = document.getElementById("robot-select");
+  const addBtn = document.getElementById("btn-add-robot");
+  const input = document.getElementById("robot-id-input");
+
+  if (select) {
+    select.addEventListener("change", () => {
+      const id = getSelectedRobotId();
+      if (id) selectRobot(id);
+    });
+  }
+
+  if (addBtn && input) {
+    addBtn.addEventListener("click", () => {
+      const id = input.value.trim();
+      if (!id) return;
+      addRobotOption(id, true);
+      selectRobot(id);
+      input.value = "";
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addBtn.click();
+    });
+  }
+
+  KNOWN_ROBOTS.forEach((id, index) => addRobotOption(id, index === 0));
+  if (KNOWN_ROBOTS.length > 0) selectRobot(KNOWN_ROBOTS[0]);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   bindControlCenter();
   bindNavigation();
   bindDPad();
   bindTiltAndFaceTrack();
   bindCart();
+  bindRobotSelector();
   initKeyboardControls();
   initMqtt();
 });

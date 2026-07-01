@@ -1,20 +1,21 @@
 // js/teleop.js
 
-import { TOPICS, JOYSTICK_INTERVAL_MS } from "./config.js";
+import { JOYSTICK_INTERVAL_MS } from "./config.js";
 import { state } from "./state.js";
 import { publishData } from "./mqtt.js";
 
 export function startJoy(speed, rotation) {
+  if (!state.topics) return;
   state.currentSpeed = speed;
   state.currentRotation = rotation;
-  publishData(TOPICS.JOYSTICK, {
+  publishData(state.topics.JOYSTICK, {
     speed: state.currentSpeed,
     rotation: state.currentRotation,
   });
 
   if (state.movementLoop) clearInterval(state.movementLoop);
   state.movementLoop = setInterval(() => {
-    publishData(TOPICS.JOYSTICK, {
+    publishData(state.topics.JOYSTICK, {
       speed: state.currentSpeed,
       rotation: state.currentRotation,
     });
@@ -28,7 +29,7 @@ export function stopJoy() {
   }
   state.currentSpeed = 0.0;
   state.currentRotation = 0.0;
-  publishData(TOPICS.JOYSTICK, { speed: 0.0, rotation: 0.0 });
+  if (state.topics) publishData(state.topics.JOYSTICK, { speed: 0.0, rotation: 0.0 });
 }
 
 function updateJoystickFromKeys() {

@@ -15,6 +15,11 @@ const els = {
   btnMute: () => document.getElementById("btn-mute"),
   btnVideo: () => document.getElementById("btn-video"),
   btnFaceTrack: () => document.getElementById("btn-facetrack"),
+  robotSelect: () => document.getElementById("robot-select"),
+  robotIdInput: () => document.getElementById("robot-id-input"),
+  batteryValue: () => document.getElementById("battery-value"),
+  batteryIcon: () => document.getElementById("battery-icon"),
+  batteryBarFill: () => document.getElementById("battery-bar-fill"),
 };
 
 export function setConnectionStatus(connected, message) {
@@ -104,4 +109,65 @@ export function setFaceTrackButtonState(isEnabled) {
   btn.classList.toggle("hover:bg-green-700", isEnabled);
   btn.classList.toggle("bg-temi-button", !isEnabled);
   btn.classList.toggle("hover:bg-gray-500", !isEnabled);
+}
+
+// ============================================================
+// MULTI-ROBOT SELECTOR
+// ============================================================
+
+// Adds a robot ID (Temi serial number) to the dropdown list if not already present.
+export function addRobotOption(robotId, selectIt = false) {
+  const select = els.robotSelect();
+  if (!select) return;
+
+  const exists = Array.from(select.options).some(
+    (opt) => opt.value === robotId,
+  );
+  if (!exists) {
+    const opt = document.createElement("option");
+    opt.value = robotId;
+    opt.innerText = robotId;
+    select.appendChild(opt);
+  }
+  if (selectIt) select.value = robotId;
+}
+
+export function getSelectedRobotId() {
+  const select = els.robotSelect();
+  return select ? select.value : null;
+}
+
+// ============================================================
+// BATTERY DISPLAY
+// ============================================================
+
+export function setBatteryDisplay(level, isCharging) {
+  const valueEl = els.batteryValue();
+  const iconEl = els.batteryIcon();
+  const fillEl = els.batteryBarFill();
+
+  if (level === null || level === undefined) {
+    if (valueEl) valueEl.innerText = "--%";
+    if (iconEl) iconEl.innerText = "🔌";
+    if (fillEl) {
+      fillEl.style.width = "0%";
+      fillEl.className = "h-full rounded bg-gray-500 transition-all duration-300";
+    }
+    return;
+  }
+
+  const pct = Math.max(0, Math.min(100, Math.round(level)));
+  if (valueEl) {
+    valueEl.innerText = `${pct}%${isCharging ? " ⚡" : ""}`;
+  }
+  if (iconEl) {
+    iconEl.innerText = isCharging ? "🔌" : "🔋";
+  }
+  if (fillEl) {
+    fillEl.style.width = `${pct}%`;
+    let color = "bg-green-500";
+    if (pct <= 20) color = "bg-red-500";
+    else if (pct <= 50) color = "bg-yellow-500";
+    fillEl.className = `h-full rounded ${color} transition-all duration-300`;
+  }
 }
