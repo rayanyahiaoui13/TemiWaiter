@@ -1,11 +1,8 @@
 // js/config.js
 export const MQTT_CONFIG = {
-  broker: "0cb6b7de17494a0b8d1fbb40718195cd.s1.eu.hivemq.cloud",
-  port: 8884,
+  broker: "192.168.0.135",
+  port: 9001,
   clientId: "DashboardWebRTC_" + Math.random().toString(16).substr(2, 8),
-
-  username: "temi_admin",
-  password: "TestTemi1",
 };
 
 export const RTC_CONFIG = {

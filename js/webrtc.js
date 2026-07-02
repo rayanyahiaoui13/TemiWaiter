@@ -10,7 +10,7 @@ import { publishData } from "./mqtt.js";
 
 const MEDIA_CONSTRAINTS = {
   video: {
-    width: { ideal: 854 },
+    width: { ideal: 640 },
     height: { ideal: 480 },
     frameRate: { ideal: 24, max: 30 },
   },
