@@ -6,9 +6,7 @@ import { clearLiveCart } from "./cart.js";
 import { addRobotOption, getSelectedRobotId } from "./ui.js";
 
 // Known robots at startup. Add serial numbers here, or add them live via the input field.
-const KNOWN_ROBOTS = [
-  // "12345678901234", // example Temi serial number
-];
+const KNOWN_ROBOTS = ["00122350104", "00123120007"];
 
 function bindControlCenter() {
   document
@@ -59,7 +57,6 @@ function bindCart() {
     .addEventListener("click", clearLiveCart);
 }
 
-// Binds the robot selector dropdown and the "add robot" input field
 function bindRobotSelector() {
   const select = document.getElementById("robot-select");
   const addBtn = document.getElementById("btn-add-robot");
@@ -68,6 +65,7 @@ function bindRobotSelector() {
   if (select) {
     select.addEventListener("change", () => {
       const id = getSelectedRobotId();
+      if (input) input.value = id || "";
       if (id) selectRobot(id);
     });
   }
@@ -85,10 +83,8 @@ function bindRobotSelector() {
     });
   }
 
-  KNOWN_ROBOTS.forEach((id, index) => addRobotOption(id, index === 0));
-  if (KNOWN_ROBOTS.length > 0) selectRobot(KNOWN_ROBOTS[0]);
+  KNOWN_ROBOTS.forEach((id) => addRobotOption(id));
 }
-
 document.addEventListener("DOMContentLoaded", () => {
   bindControlCenter();
   bindNavigation();
