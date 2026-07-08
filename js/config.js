@@ -1,7 +1,7 @@
 // js/config.js
 export const MQTT_CONFIG = {
-  //broker: "192.168.0.133",
-  broker: "100.69.184.106",
+  broker: "192.168.0.133",
+  //broker: "100.69.184.106",
   port: 9001,
   clientId: "DashboardWebRTC_" + Math.random().toString(16).substr(2, 8),
 };
