@@ -137,8 +137,6 @@ export function initMqtt() {
   client.onMessageArrived = onMessageArrived;
 
   client.connect({
-    userName: "temi_admin",       
-    password: "TestTemi1",
     useSSL: false,
     onSuccess: onConnectSuccess,
     onFailure: onConnectFailure,
