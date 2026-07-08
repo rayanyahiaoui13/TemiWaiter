@@ -1,6 +1,6 @@
 // js/config.js
 export const MQTT_CONFIG = {
-  broker: "192.168.0.133",
+  broker: "192.168.0.135",
   //broker: "100.69.184.106", //tailscale
   //broker: "10.69.85.57", //hotspot
   port: 9001,
