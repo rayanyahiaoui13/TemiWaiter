@@ -90,8 +90,31 @@ function onMessageArrived(message) {
   }
 }
 
-function onConnectionLost() {
-  setConnectionStatus(false, "🔴 MQTT CONNECTION LOST");
+function onConnectionLost(responseObject) {
+  if (responseObject.errorCode !== 0) {
+    console.warn("MQTT CONNECTION LOST:", responseObject.errorMessage);
+    setConnectionStatus(false, "🔴 WIFI LOST - Reconnecting...");
+    
+    // Attempt to reconnect every 3 seconds
+    setTimeout(attemptReconnect, 3000);
+  }
+}
+
+function attemptReconnect() {
+  if (client && !client.isConnected()) {
+    console.log("Attempting MQTT reconnection...");
+    
+    client.connect({
+      useSSL: false,
+      userName: "temi_admin",
+      password: "TestTemi1",
+      onSuccess: onConnectSuccess, // This function will run selectRobot() and subscribe again
+      onFailure: (err) => {
+        setConnectionStatus(false, "🔴 RECONNECTION FAILED - Retrying...");
+        setTimeout(attemptReconnect, 3000); // Infinite loop as long as Wi-Fi is down
+      }
+    });
+  }
 }
 
 function subscribeToRobotTopics() {
