@@ -1,7 +1,7 @@
 // js/config.js
 export const MQTT_CONFIG = {
-  //broker: "192.168.0.135",
-  broker: "100.69.184.106", //tailscale
+  broker: "192.168.0.135",
+  //broker: "100.69.184.106", //tailscale
   //broker: "10.69.85.57", //hotspot
   port: 9001,
   clientId: "DashboardWebRTC_" + Math.random().toString(16).substr(2, 8),
@@ -17,7 +17,7 @@ export const MENU_PRICES = {
   "Temi Burger": 15.0,
   "Grilled Salmon": 18.0,
   "Choco Fondant": 6.5,
-  Cheesecake: 7.0,
+  "Cheesecake": 7.0,
   "Coca-Cola": 3.5,
   "Water Bottle": 2.0,
 };
