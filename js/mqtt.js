@@ -139,14 +139,14 @@ function unsubscribeFromRobotTopics(topics) {
 }
 
 function onConnectSuccess() {
-  setConnectionStatus(true, "🟢 ONLINE (CLOUD) - Ready for video");
+  setConnectionStatus(true, "🟢 ONLINE - Ready for video");
   if (state.currentRobotId) selectRobot(state.currentRobotId);
 }
 
 function onConnectFailure(message) {
   setConnectionStatus(
     false,
-    "🔴 CLOUD CONNECTION FAILED: " + message.errorMessage,
+    "🔴 CONNECTION FAILED: " + message.errorMessage,
   );
 }
 
