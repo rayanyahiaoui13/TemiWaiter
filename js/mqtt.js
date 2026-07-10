@@ -105,7 +105,7 @@ function attemptReconnect() {
     console.log("Attempting MQTT reconnection...");
     
     client.connect({
-      useSSL: false,
+      useSSL: true,
       userName: "temi_admin",
       password: "TestTemi1",
       onSuccess: onConnectSuccess, // This function will run selectRobot() and subscribe again
