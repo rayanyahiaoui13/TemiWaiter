@@ -10,12 +10,6 @@ import {
 import { startJoy, stopJoy, initKeyboardControls } from "./teleop.js";
 import { clearLiveCart } from "./cart.js";
 import { addRobotOption, getSelectedRobotId } from "./ui.js";
-import {
-  sendGoTo,
-  setTiltAngle,
-  toggleFaceTracking,
-  requestLocations,
-} from "./navigation.js";
 
 // Known robots at startup. Add serial numbers here, or add them live via the input field.
 const KNOWN_ROBOTS = ["00122350104", "00123120007"];
@@ -104,6 +98,7 @@ function bindRobotSelector() {
 
   KNOWN_ROBOTS.forEach((id) => addRobotOption(id));
 }
+
 document.addEventListener("DOMContentLoaded", () => {
   bindControlCenter();
   bindNavigation();
