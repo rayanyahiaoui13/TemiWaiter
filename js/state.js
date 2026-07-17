@@ -15,6 +15,7 @@ export const state = {
     ArrowLeft: false,
     ArrowRight: false,
   },
+  locations: [],
 
   // Multi-robot support
   currentRobotId: null,

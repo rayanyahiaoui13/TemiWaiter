@@ -20,7 +20,39 @@ const els = {
   batteryValue: () => document.getElementById("battery-value"),
   batteryIcon: () => document.getElementById("battery-icon"),
   batteryBarFill: () => document.getElementById("battery-bar-fill"),
+  navContainer: () => document.getElementById("nav-locations-container"),
 };
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+export function renderLocationButtons(locations) {
+  const container = els.navContainer();
+  if (!container) return;
+
+  if (!locations || locations.length === 0) {
+    container.innerHTML =
+      '<p class="text-gray-500 italic text-sm">No locations reported by this robot yet.</p>';
+    return;
+  }
+
+  container.innerHTML = locations
+    .map(
+      (loc) => `
+      <button
+        data-goto="${escapeHtml(loc)}"
+        class="bg-temi-button hover:bg-temi-button-hover text-gray-200 font-medium py-2 px-4 rounded shadow transition-colors text-left"
+      >
+        Go to ${escapeHtml(loc)}
+      </button>`,
+    )
+    .join("");
+}
 
 export function setConnectionStatus(connected, message) {
   const sb = els.statusBar();
@@ -151,7 +183,8 @@ export function setBatteryDisplay(level, isCharging) {
     if (iconEl) iconEl.innerText = "🔌";
     if (fillEl) {
       fillEl.style.width = "0%";
-      fillEl.className = "h-full rounded bg-gray-500 transition-all duration-300";
+      fillEl.className =
+        "h-full rounded bg-gray-500 transition-all duration-300";
     }
     return;
   }

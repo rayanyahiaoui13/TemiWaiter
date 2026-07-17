@@ -6,6 +6,7 @@ import {
   setTiltDisplay,
   resetTiltSlider,
   setFaceTrackButtonState,
+  renderLocationButtons,
 } from "./ui.js";
 
 export function sendGoTo(destinationName) {
@@ -14,6 +15,17 @@ export function sendGoTo(destinationName) {
     action: "goto",
     destination: destinationName,
   });
+}
+
+export function requestLocations() {
+  if (!state.topics) return;
+  publishData(state.topics.COMMANDS, { action: "get_locations" });
+}
+
+export function handleLocationsUpdate(payload) {
+  const locations = Array.isArray(payload.locations) ? payload.locations : [];
+  state.locations = locations;
+  renderLocationButtons(locations);
 }
 
 export function publishMode(mode) {

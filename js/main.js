@@ -1,9 +1,21 @@
 import { initMqtt, selectRobot } from "./mqtt.js";
 import { startWebRTCCall, toggleMute, toggleVideo } from "./webrtc.js";
-import { sendGoTo, setTiltAngle, toggleFaceTracking } from "./navigation.js";
+import {
+  sendGoTo,
+  setTiltAngle,
+  toggleFaceTracking,
+  requestLocations,
+} from "./navigation.js";
+
 import { startJoy, stopJoy, initKeyboardControls } from "./teleop.js";
 import { clearLiveCart } from "./cart.js";
 import { addRobotOption, getSelectedRobotId } from "./ui.js";
+import {
+  sendGoTo,
+  setTiltAngle,
+  toggleFaceTracking,
+  requestLocations,
+} from "./navigation.js";
 
 // Known robots at startup. Add serial numbers here, or add them live via the input field.
 const KNOWN_ROBOTS = ["00122350104", "00123120007"];
@@ -17,9 +29,16 @@ function bindControlCenter() {
 }
 
 function bindNavigation() {
-  document.querySelectorAll("[data-goto]").forEach((btn) => {
-    btn.addEventListener("click", () => sendGoTo(btn.dataset.goto));
-  });
+  const container = document.getElementById("nav-locations-container");
+  if (container) {
+    container.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-goto]");
+      if (btn) sendGoTo(btn.dataset.goto);
+    });
+  }
+
+  const refreshBtn = document.getElementById("btn-refresh-locations");
+  if (refreshBtn) refreshBtn.addEventListener("click", requestLocations);
 }
 
 function bindDPad() {

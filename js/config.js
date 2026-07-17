@@ -1,6 +1,6 @@
 // js/config.js
 export const MQTT_CONFIG = {
-  broker: "0cb6b7de17494a0b8d1fbb40718195cd.s1.eu.hivemq.cloud", 
+  broker: "0cb6b7de17494a0b8d1fbb40718195cd.s1.eu.hivemq.cloud",
   port: 8884,
   //broker: "192.168.0.135",
   //broker: "100.69.184.106", //tailscale
@@ -19,7 +19,7 @@ export const MENU_PRICES = {
   "Temi Burger": 15.0,
   "Grilled Salmon": 18.0,
   "Choco Fondant": 6.5,
-  "Cheesecake": 7.0,
+  Cheesecake: 7.0,
   "Coca-Cola": 3.5,
   "Water Bottle": 2.0,
 };
@@ -35,6 +35,7 @@ export function buildTopics(robotId) {
     MODE: `${robotId}/mode`,
     COMMANDS: `${robotId}/commands`,
     JOYSTICK: `${robotId}/joystick`,
+    LOCATIONS: `${robotId}/locations`,
   };
 }
 

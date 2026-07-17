@@ -10,6 +10,7 @@ import {
 import { addToCart, handleOrderValidation, clearLiveCart } from "./cart.js";
 import { handleRemoteAnswer, handleRemoteCandidate } from "./webrtc.js";
 import { state } from "./state.js";
+import { handleLocationsUpdate, requestLocations } from "./navigation.js";
 
 let client = null;
 
@@ -84,6 +85,9 @@ function onMessageArrived(message) {
       case topics.STATUS:
         handleStatusMessage(payload);
         break;
+      case topics.LOCATIONS:
+        handleLocationsUpdate(payload);
+        break;
     }
   } catch (error) {
     console.error("MQTT Parsing Error:", error, message.payloadString);
@@ -94,7 +98,7 @@ function onConnectionLost(responseObject) {
   if (responseObject.errorCode !== 0) {
     console.warn("MQTT CONNECTION LOST:", responseObject.errorMessage);
     setConnectionStatus(false, "🔴 WIFI LOST - Reconnecting...");
-    
+
     // Attempt to reconnect every 3 seconds
     setTimeout(attemptReconnect, 3000);
   }
@@ -103,7 +107,7 @@ function onConnectionLost(responseObject) {
 function attemptReconnect() {
   if (client && !client.isConnected()) {
     console.log("Attempting MQTT reconnection...");
-    
+
     client.connect({
       useSSL: true,
       userName: "temi_admin",
@@ -112,7 +116,7 @@ function attemptReconnect() {
       onFailure: (err) => {
         setConnectionStatus(false, "🔴 RECONNECTION FAILED - Retrying...");
         setTimeout(attemptReconnect, 3000); // Infinite loop as long as Wi-Fi is down
-      }
+      },
     });
   }
 }
@@ -124,6 +128,7 @@ function subscribeToRobotTopics() {
   client.subscribe(t.WEBRTC_CANDIDATE_ROBOT);
   client.subscribe(t.STATUS);
   client.subscribe(t.MENU);
+  client.subscribe(t.LOCATIONS);
 }
 
 function unsubscribeFromRobotTopics(topics) {
@@ -133,6 +138,7 @@ function unsubscribeFromRobotTopics(topics) {
     client.unsubscribe(topics.WEBRTC_CANDIDATE_ROBOT);
     client.unsubscribe(topics.STATUS);
     client.unsubscribe(topics.MENU);
+    client.unsubscribe(topics.LOCATIONS);
   } catch (e) {
     console.warn("Unsubscribe error:", e);
   }
@@ -144,10 +150,7 @@ function onConnectSuccess() {
 }
 
 function onConnectFailure(message) {
-  setConnectionStatus(
-    false,
-    "🔴 CONNECTION FAILED: " + message.errorMessage,
-  );
+  setConnectionStatus(false, "🔴 CONNECTION FAILED: " + message.errorMessage);
 }
 
 export function initMqtt() {
@@ -161,7 +164,7 @@ export function initMqtt() {
 
   client.connect({
     useSSL: true,
-    userName: "temi_admin", 
+    userName: "temi_admin",
     password: "TestTemi1",
     onSuccess: onConnectSuccess,
     onFailure: onConnectFailure,
@@ -182,13 +185,16 @@ export function selectRobot(robotId) {
   unsubscribeFromRobotTopics(previousTopics);
   subscribeToRobotTopics();
 
-  // Reset battery display until the new robot reports its status
   state.batteryLevel = null;
   state.isCharging = false;
   setBatteryDisplay(null, false);
 
+  state.locations = [];
+  renderLocationButtons([]);
+
   addLogEntry(`Connected to robot: ${robotId}`, "text-green-400", true);
   publishRaw(state.topics.MODE, "MANUEL");
+  requestLocations();
 }
 
 export function isMqttConnected() {
