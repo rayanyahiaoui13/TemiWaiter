@@ -116,6 +116,13 @@ export function setCallButtonActive() {
   btn.classList.replace("hover:bg-temi-orange-hover", "hover:bg-green-700");
 }
 
+export function resetCallButton() {
+  const btn = els.btnCall();
+  btn.innerText = "Initialize WebRTC Call";
+  btn.classList.replace("bg-green-600", "bg-temi-orange");
+  btn.classList.replace("hover:bg-green-700", "hover:bg-temi-orange-hover");
+}
+
 export function setMuteButtonState(isMuted) {
   const btn = els.btnMute();
   btn.innerText = isMuted ? "Unmute Mic" : "Mute Mic";

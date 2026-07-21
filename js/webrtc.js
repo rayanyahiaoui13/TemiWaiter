@@ -3,6 +3,7 @@ import { RTC_CONFIG } from "./config.js";
 import { state } from "./state.js";
 import {
   setCallButtonActive,
+  resetCallButton,
   setMuteButtonState,
   setVideoButtonState,
 } from "./ui.js";
@@ -51,6 +52,17 @@ export async function startWebRTCCall() {
     setCallButtonActive();
   };
 
+  state.peerConnection.oniceconnectionstatechange = () => {
+    const iceState = state.peerConnection?.iceConnectionState;
+    if (
+      iceState === "disconnected" ||
+      iceState === "failed" ||
+      iceState === "closed"
+    ) {
+      handleCallDropped();
+    }
+  };
+
   try {
     const localStream =
       await navigator.mediaDevices.getUserMedia(MEDIA_CONSTRAINTS);
@@ -70,6 +82,18 @@ export async function startWebRTCCall() {
   const offer = await state.peerConnection.createOffer();
   await state.peerConnection.setLocalDescription(offer);
   publishData(state.topics.WEBRTC_OFFER, { type: offer.type, sdp: offer.sdp });
+}
+
+function handleCallDropped() {
+  resetCallButton();
+
+  const remoteVideo = document.getElementById("remote-video");
+  if (remoteVideo) remoteVideo.srcObject = null;
+
+  if (state.peerConnection) {
+    state.peerConnection.close();
+    state.peerConnection = null;
+  }
 }
 
 export function toggleMute() {
