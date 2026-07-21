@@ -6,6 +6,7 @@ import {
   addLogEntry,
   setCurrentPage,
   setBatteryDisplay,
+  renderLocationButtons,
 } from "./ui.js";
 import { addToCart, handleOrderValidation, clearLiveCart } from "./cart.js";
 import { handleRemoteAnswer, handleRemoteCandidate } from "./webrtc.js";
