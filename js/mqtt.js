@@ -6,10 +6,12 @@ import {
   addLogEntry,
   setCurrentPage,
   setBatteryDisplay,
+  renderLocationButtons,
 } from "./ui.js";
 import { addToCart, handleOrderValidation, clearLiveCart } from "./cart.js";
 import { handleRemoteAnswer, handleRemoteCandidate } from "./webrtc.js";
 import { state } from "./state.js";
+import { handleLocationsUpdate, requestLocations } from "./navigation.js";
 
 let client = null;
 
@@ -84,6 +86,9 @@ function onMessageArrived(message) {
       case topics.STATUS:
         handleStatusMessage(payload);
         break;
+      case topics.LOCATIONS:
+        handleLocationsUpdate(payload);
+        break;  
     }
   } catch (error) {
     console.error("MQTT Parsing Error:", error, message.payloadString);
@@ -124,6 +129,7 @@ function subscribeToRobotTopics() {
   client.subscribe(t.WEBRTC_CANDIDATE_ROBOT);
   client.subscribe(t.STATUS);
   client.subscribe(t.MENU);
+  client.subscribe(t.LOCATIONS);
 }
 
 function unsubscribeFromRobotTopics(topics) {
@@ -133,6 +139,7 @@ function unsubscribeFromRobotTopics(topics) {
     client.unsubscribe(topics.WEBRTC_CANDIDATE_ROBOT);
     client.unsubscribe(topics.STATUS);
     client.unsubscribe(topics.MENU);
+    client.unsubscribe(topics.LOCATIONS);
   } catch (e) {
     console.warn("Unsubscribe error:", e);
   }
@@ -187,8 +194,12 @@ export function selectRobot(robotId) {
   state.isCharging = false;
   setBatteryDisplay(null, false);
 
+  state.locations = [];
+  renderLocationButtons([]);
+
   addLogEntry(`Connected to robot: ${robotId}`, "text-green-400", true);
   publishRaw(state.topics.MODE, "MANUEL");
+  requestLocations();
 }
 
 export function isMqttConnected() {

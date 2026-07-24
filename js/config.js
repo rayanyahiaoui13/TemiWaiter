@@ -43,6 +43,7 @@ export function buildTopics(robotId) {
     MODE: `${robotId}/mode`,
     COMMANDS: `${robotId}/commands`,
     JOYSTICK: `${robotId}/joystick`,
+    LOCATIONS: `${robotId}/locations`,
   };
 }
 
